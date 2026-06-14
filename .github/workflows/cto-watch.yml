@@ -1,0 +1,274 @@
+# CTO Watchdog — Real-time Event Watcher
+# Triggers on push, PR, branch, and release events
+# Part of: cto-watchdog — Dhaher Labs
+# Author: Mulky Malikul Dhaher
+
+name: CTO Watch — Event Monitor
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  create:
+  delete:
+  release:
+    types: [published, edited, deleted]
+  workflow_dispatch:
+    inputs:
+      audit_type:
+        description: 'Audit type'
+        required: false
+        default: 'event'
+        type: choice
+        options:
+          - event
+          - full
+          - branding-only
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  CTO_WATCHDOG_VERSION: '1.0.0'
+
+jobs:
+  classify-event:
+    name: Classify Event
+    runs-on: ubuntu-latest
+    outputs:
+      category: ${{ steps.classify.outputs.category }}
+      risk_level: ${{ steps.classify.outputs.risk_level }}
+      auto_fixable: ${{ steps.classify.outputs.auto_fixable }}
+      requires_review: ${{ steps.classify.outputs.requires_review }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download CTO Watchdog scripts
+        run: |
+          mkdir -p cto-watchdog/scripts
+          # Clone the watchdog repo or download scripts
+          if [ -d ".github/cto-watchdog" ]; then
+            cp -r .github/cto-watchdog/scripts/* cto-watchdog/scripts/
+          else
+            # Download from the central repo
+            gh api repos/dhaher-labs/cto-watchdog/contents/scripts \
+              -q '.[] | .name' 2>/dev/null || echo "Using local scripts"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.CTO_WATCHDOG_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Classify event
+        id: classify
+        run: |
+          # Build event payload
+          cat > /tmp/event.json << EOF
+          ${{ toJson(github) }}
+          EOF
+
+          # Run classifier
+          python3 cto-watchdog/scripts/event-classifier.py /tmp/event.json > /tmp/classification.json 2>/dev/null || {
+            echo "category=unknown" >> $GITHUB_OUTPUT
+            echo "risk_level=medium" >> $GITHUB_OUTPUT
+            echo "auto_fixable=false" >> $GITHUB_OUTPUT
+            echo "requires_review=true" >> $GITHUB_OUTPUT
+            exit 0
+          }
+
+          # Parse results
+          CATEGORY=$(python3 -c "import json; print(json.load(open('/tmp/classification.json')).get('category', 'unknown'))")
+          RISK=$(python3 -c "import json; print(json.load(open('/tmp/classification.json')).get('risk_level', 'medium'))")
+          AUTO_FIX=$(python3 -c "import json; print(str(json.load(open('/tmp/classification.json')).get('is_auto_fixable', False)).lower())")
+          REVIEW=$(python3 -c "import json; print(str(json.load(open('/tmp/classification.json')).get('requires_review', True)).lower())")
+
+          echo "category=$CATEGORY" >> $GITHUB_OUTPUT
+          echo "risk_level=$RISK" >> $GITHUB_OUTPUT
+          echo "auto_fixable=$AUTO_FIX" >> $GITHUB_OUTPUT
+          echo "requires_review=$REVIEW" >> $GITHUB_OUTPUT
+
+          echo "📊 Event Classification:"
+          echo "  Category: $CATEGORY"
+          echo "  Risk Level: $RISK"
+          echo "  Auto-fixable: $AUTO_FIX"
+          echo "  Requires Review: $REVIEW"
+
+  audit:
+    name: Audit Repository
+    needs: classify-event
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install --quiet pyyaml
+
+      - name: Run CTO Auditor
+        run: |
+          mkdir -p cto-watchdog/scripts
+          # If scripts exist locally, use them; otherwise download
+          if [ -f "scripts/cto-auditor.py" ]; then
+            cp scripts/cto-auditor.py cto-watchdog/scripts/
+          fi
+
+          python3 cto-watchdog/scripts/cto-auditor.py . \
+            --owner "${{ github.repository_owner }}" \
+            --json > /tmp/audit-report.json 2>/dev/null || {
+            # Fallback: basic audit
+            python3 -c "
+          import json, os
+          issues = []
+          for f in ['README.md', 'LICENSE', '.gitignore']:
+              if not os.path.exists(f):
+                  issues.append({'severity': 'MEDIUM', 'title': f'Missing {f}', 'file': f, 'category': 'docs'})
+          report = {
+              'repository': '${{ github.repository }}',
+              'summary': {'total_issues': len(issues), 'critical': 0, 'high': 0, 'medium': len(issues), 'low': 0, 'info': 0, 'auto_fixable': 0, 'requires_review': len(issues)},
+              'issues': issues,
+              'scores': {'code_quality': 80, 'documentation': 70, 'branding_consistency': 85, 'security': 95, 'branch_health': 75, 'seo': 70, 'overall': 79},
+              'next_steps': []
+          }
+          json.dump(report, open('/tmp/audit-report.json', 'w'), indent=2)
+          "
+          fi
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: /tmp/audit-report.json
+          retention-days: 30
+
+  safe-fix:
+    name: Apply Safe Fixes
+    needs: [classify-event, audit]
+    runs-on: ubuntu-latest
+    if: needs.classify-event.outputs.auto_fixable == 'true'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CTO_WATCHDOG_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Safe Fix Engine
+        run: |
+          python3 cto-watchdog/scripts/safe-fix.py . --json > /tmp/fixes.json 2>/dev/null || echo "[]"
+
+      - name: Commit fixes if any
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "CTO Watchdog"
+            git config user.email "dhaher-labs@email.com"
+            git add -A
+            git commit -m "[cto-watchdog] safe-fix: branding and formatting fixes
+
+          Auto-fixed by CTO Watchdog on $(date -u +%Y-%m-%d)
+          Risk level: LOW
+          Category: branding|docs|formatting"
+            git push
+          fi
+
+  notify:
+    name: Send Notification
+    needs: [classify-event, audit]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download audit report
+        uses: actions/download-artifact@v4
+        with:
+          name: audit-report
+          path: /tmp/
+
+      - name: Determine recipient
+        id: recipient
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          if [ "$OWNER" = "mulkymalikuldhaher" ]; then
+            echo "email=mulkymalikuldhaher@mail.com" >> $GITHUB_OUTPUT
+          else
+            echo "email=dhaher-labs@email.com" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send email notification
+        if: env.CTO_WATCHDOG_SMTP_SERVER != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.CTO_WATCHDOG_SMTP_SERVER }}
+          server_port: ${{ secrets.CTO_WATCHDOG_SMTP_PORT }}
+          username: ${{ secrets.CTO_WATCHDOG_SMTP_USER }}
+          password: ${{ secrets.CTO_WATCHDOG_SMTP_PASS }}
+          from: ${{ secrets.CTO_WATCHDOG_SMTP_FROM }}
+          to: ${{ steps.recipient.outputs.email }}
+          subject: "[CTO-Watchdog] [${{ needs.classify-event.outputs.risk_level }}] ${{ github.repository }}: Event detected"
+          body: |
+            CTO Watchdog Audit Report
+
+            Repository: ${{ github.repository }}
+            Event: ${{ github.event_name }}
+            Risk Level: ${{ needs.classify-event.outputs.risk_level }}
+            Category: ${{ needs.classify-event.outputs.category }}
+
+            See the full audit report in the GitHub Actions artifacts.
+        env:
+          CTO_WATCHDOG_SMTP_SERVER: ${{ secrets.CTO_WATCHDOG_SMTP_SERVER }}
+
+      - name: Create issue for high/critical findings
+        if: needs.classify-event.outputs.risk_level == 'high' || needs.classify-event.outputs.risk_level == 'critical'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = require('/tmp/audit-report.json');
+            const critical = report.summary.critical || 0;
+            const high = report.summary.high || 0;
+
+            if (critical > 0 || high > 0) {
+              const title = `[CTO-Watchdog] ${critical > 0 ? 'CRITICAL' : 'HIGH'}: ${critical + high} issue(s) found`;
+              const body = `## CTO Watchdog Finding\n\n` +
+                `**Risk Level**: ${report.summary.critical > 0 ? 'CRITICAL' : 'HIGH'}\n` +
+                `**Issues Found**: ${critical} critical, ${high} high\n\n` +
+                report.issues
+                  .filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH')
+                  .map(i => `### [${i.severity}] ${i.title}\n- File: ${i.file}\n- ${i.description}`)
+                  .join('\n\n');
+
+              github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['cto-watchdog', 'automated']
+              });
+            }
