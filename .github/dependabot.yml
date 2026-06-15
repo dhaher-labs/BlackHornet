@@ -1,40 +1,42 @@
-{
-    "version": 2,
-    "updates": [
-      {
-        "package-ecosystem": "npm",
-        "directory": "/",
-        "schedule": {"interval": "weekly"},
-        "open-pull-requests-limit": 5,
-        "labels": ["dependencies", "automated"]
-      },
-      {
-        "package-ecosystem": "pip",
-        "directory": "/",
-        "schedule": {"interval": "weekly"},
-        "open-pull-requests-limit": 5,
-        "labels": ["dependencies", "automated"]
-      },
-      {
-        "package-ecosystem": "cargo",
-        "directory": "/",
-        "schedule": {"interval": "weekly"},
-        "open-pull-requests-limit": 5,
-        "labels": ["dependencies", "automated"]
-      },
-      {
-        "package-ecosystem": "github-actions",
-        "directory": "/",
-        "schedule": {"interval": "weekly"},
-        "open-pull-requests-limit": 3,
-        "labels": ["dependencies", "ci/ cd"]
-      },
-      {
-        "package-ecosystem": "docker",
-        "directory": "/",
-        "schedule": {"interval": "weekly"},
-        "open-pull-requests-limit": 3,
-        "labels": ["dependencies", "docker"]
-      }
-    ]
-  }
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - automated
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - automated
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - automated
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - ci-cd
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - docker
