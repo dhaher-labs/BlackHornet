@@ -1,5 +1,5 @@
 # Hermes Hive — Docker Production Image
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="Hermes Hive"
 LABEL org.opencontainers.image.description="Autonomous Multi-Agent Trading Ecosystem — 7 repos, 21 agents, immortal"
