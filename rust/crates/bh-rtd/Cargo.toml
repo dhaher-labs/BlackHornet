@@ -1,0 +1,27 @@
+[package]
+name = "bh-rtd"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "BlackHornet Rust runtime daemon — Phase 0 scaffold (AgentHost contract, BH_RUNTIME gate, feature-gated infinity adapter)."
+
+[features]
+# Default ON: the plain `cargo build` / `cargo test` path exercises the real
+# infinity-agent-core 0.2.0 dependency. `--no-default-features` gives a
+# hermetic std-only build (used by the Phase 0 quality gate and by
+# network-less environments).
+default = ["infinity"]
+infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol"]
+
+[dependencies]
+infinity-agent-core = { workspace = true, optional = true }
+infinity-provider-protocol = { workspace = true, optional = true }
+
+# NOTE: no tokio *dependency*. The verified Infinity trait API is async
+# (`#[async_trait]`), so the adapter exposes async methods, but Phase 0 ships
+# no executor: the smoke tests bring their own via a dev-dependency only.
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

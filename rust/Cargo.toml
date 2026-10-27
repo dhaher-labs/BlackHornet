@@ -1,0 +1,27 @@
+# BlackHornet Rust workspace — Phase 0 scaffold ("bridges before ports").
+# See rust/README.md for scope; PLAN.md §4 for the full strangler-fig roadmap.
+[workspace]
+resolver = "2"
+members = ["crates/bh-rtd"]
+
+[workspace.package]
+edition = "2024"
+# infinity requires Rust >= 1.85 (edition 2024); enforced here so older
+# toolchains fail with a clear message instead of a cryptic error.
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/mulkymalikuldhaher/BlackHornet"
+
+[workspace.dependencies]
+# hydro-project/infinity runtime, pinned to the exact 0.2.0 release
+# (pre-1.0 churn guard: PLAN.md §4 risk R10 — "pin exact crates").
+# Published on crates.io 2026-10-22; repository: hydro-project/infinity.
+infinity-agent-core = { version = "=0.2.0" }
+infinity-provider-protocol = { version = "=0.2.0" }
+
+[profile.release]
+# Small-binary release profile for the future bh-rtd daemon (Phase 2).
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
