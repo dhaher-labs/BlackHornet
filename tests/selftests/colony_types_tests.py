@@ -1,4 +1,9 @@
-"""Tests for src/types — Pydantic v2 models and enums."""
+"""Tests for src/colony_types — Pydantic v2 models and enums.
+
+v7.0.0: ``src/types.py`` was removed in the clean rebuild; the canonical
+type system now lives in ``src/colony_types`` (with ``src/bh_types`` for the
+core runtime types).
+"""
 
 from __future__ import annotations
 
@@ -300,9 +305,24 @@ class TestAPIModels(unittest.TestCase):
 
 
 class TestTypesInitExports(unittest.TestCase):
-    """Verify types/__init__.py exports all expected symbols."""
+    """Verify src.colony_types exports its declared public surface.
+
+    v7.0.0: the old test asserted against ``src.types`` (removed in the clean
+    rebuild). The canonical package is now ``src.colony_types`` — every name
+    declared in its ``__all__`` must resolve on the package.
+    """
 
     def test_all_exported_symbols_importable(self):
+        import src.colony_types
+        exported = list(getattr(src.colony_types, "__all__", []))
+        self.assertTrue(exported, "src.colony_types must declare __all__")
+        for name in exported:
+            with self.subTest(symbol=name):
+                self.assertTrue(hasattr(src.colony_types, name), f"Missing {name}")
+
+    def test_pre_v7_expected_symbols_still_exported(self):
+        # Pin the symbol list this suite asserted before v7 (against the old
+        # src.types module) to the colony_types public surface.
         import src.colony_types
         expected = [
             "AgentType", "AgentState", "AutonomyLevel", "ColonyStatus",
@@ -314,9 +334,10 @@ class TestTypesInitExports(unittest.TestCase):
             "A2AMessage", "A2AHandshake", "A2ACapabilityAd",
             "SkillDef", "APIError", "PaginatedResponse",
         ]
+        declared = set(getattr(src.colony_types, "__all__", []))
         for name in expected:
             with self.subTest(symbol=name):
-                self.assertTrue(hasattr(src.types, name), f"Missing {name}")
+                self.assertIn(name, declared, f"No longer exported: {name}")
 
 
 if __name__ == "__main__":

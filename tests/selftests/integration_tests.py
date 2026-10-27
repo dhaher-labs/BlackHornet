@@ -1,16 +1,20 @@
 """Tests for FASE 10: Inject BH Modules.
 
-Run: python3 src/integration/tests.py -v
+v7.0.0 location: tests/selftests/integration_tests.py (moved out of
+src/integration/).
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import unittest
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
+from selftest_support import restore_root_logging, snapshot_root_logging
 
 
 class TestGraphTracker(unittest.TestCase):
@@ -150,6 +154,14 @@ class TestKeeperExtension(unittest.TestCase):
     def setUp(self):
         from src.integration.keeper_extension import KeeperExtension
         self.K = KeeperExtension
+        # Isolation (task 14-b): check_module("auto_discovery") instantiates
+        # AutoDiscoveryEngine, whose modules log with structlog-style kwargs
+        # on the stdlib logger. Those calls only raise TypeError once some
+        # earlier test has bumped the root logger to INFO via an import-time
+        # logging.basicConfig() (e.g. src.hermes_quant). Pin the root logging
+        # config around each check and restore it afterwards.
+        self._log_snapshot = snapshot_root_logging()
+        self.addCleanup(restore_root_logging, self._log_snapshot)
 
     def test_check_module_auto_discovery(self):
         result = self.K.check_module("auto_discovery")
@@ -187,6 +199,12 @@ class TestKeeperExtension(unittest.TestCase):
 
 class TestSrcInit(unittest.TestCase):
     """src/__init__.py exports."""
+
+    def setUp(self):
+        # Isolation (task 14-b): same root-logging pin as TestKeeperExtension
+        # — check_all_modules() runs the auto-discovery health check.
+        self._log_snapshot = snapshot_root_logging()
+        self.addCleanup(restore_root_logging, self._log_snapshot)
 
     def test_get_unified_launcher(self):
         from src import get_unified_launcher

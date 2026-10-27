@@ -1,12 +1,15 @@
 """Tests for evolution layer (Phase 13.5): SkillLearner, AutoDiscoveryEnhancer, SelfModifyEngine, EvolutionOrchestrator."""
 
 import asyncio
+import logging
 import os
 import sys
 import tempfile
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
+from selftest_support import close_event_loop, restore_root_logging, snapshot_root_logging
 
 
 class TestSkillLearner(unittest.TestCase):
@@ -144,10 +147,17 @@ class TestAutoDiscoveryEnhancer(unittest.TestCase):
         self.tmp = tempfile.mkdtemp()
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        # Isolation (task 14-b): discovery scans below can transitively import
+        # ANY src module (e.g. src.hermes_quant, which calls
+        # logging.basicConfig() at import time and bumps the root logger to
+        # INFO). Snapshot the root logging config and restore it afterwards so
+        # later test modules are not affected by import-time side effects.
+        self._log_snapshot = snapshot_root_logging()
+        self.addCleanup(restore_root_logging, self._log_snapshot)
 
     def tearDown(self):
         import shutil
-        self.loop.close()
+        close_event_loop(self.loop)
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def _make_discovery(self, **kwargs):
@@ -452,10 +462,17 @@ class TestEvolutionOrchestrator(unittest.TestCase):
         self.tmp = tempfile.mkdtemp()
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        # Isolation (task 14-b): run_discovery_scan() walks the whole ``src``
+        # package via pkgutil/importlib, which executes module-level side
+        # effects of every src module (hermes_quant reconfigures the root
+        # logger with logging.basicConfig + a file handler). Restore the root
+        # logging config afterwards so later test modules stay untouched.
+        self._log_snapshot = snapshot_root_logging()
+        self.addCleanup(restore_root_logging, self._log_snapshot)
 
     def tearDown(self):
         import shutil
-        self.loop.close()
+        close_event_loop(self.loop)
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def _make_orch(self, **kwargs):

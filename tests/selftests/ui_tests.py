@@ -1,6 +1,6 @@
 """Tests for FASE 8: Interactive UI + Dual Interface.
 
-Run: python3 src/ui/tests.py -v
+v7.0.0 location: tests/selftests/ui_tests.py (moved out of src/ui/).
 """
 
 from __future__ import annotations
@@ -317,7 +317,12 @@ class TestStaticFiles(unittest.TestCase):
     """Static frontend files exist and are valid."""
 
     def test_index_html_exists(self):
-        path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+        # v7.0.0: the static frontend lives at <repo>/src/ui/static/ — the old
+        # pre-v7 path (tests/selftests/static/) never existed after the move.
+        repo_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..")
+        )
+        path = os.path.join(repo_root, "src", "ui", "static", "index.html")
         self.assertTrue(os.path.isfile(path))
         with open(path) as f:
             content = f.read()
@@ -400,15 +405,41 @@ class TestAPIBridgeEcosystem(unittest.TestCase):
 
     def test_get_ecosystem_status_with_orch(self):
         from src.ui.api_bridge import APIBridge
+        # v7 contract (src/ui/api_bridge.py): get_ecosystem_status() prefers
+        # orchestrator.get_status_snapshot(); the pre-v7 mock contract
+        # (get_stats/get_status_cache) no longer exists.
+        snapshot = {
+            "orchestrator": {
+                "colony_id": "col-1",
+                "colony_name": "test",
+                "running": True,
+                "uptime": 100.0,
+                "sync_count": 5,
+            },
+            "radar": {"peer_count": 0},
+            "mesh": {},
+        }
         mock_orch = type("MockOrch", (), {
-            "get_stats": lambda self: {"running": True, "colony": "test", "sync_count": 5},
-            "get_status_cache": lambda self: {"orchestrator": {"uptime": 100}},
+            "get_status_snapshot": lambda self: dict(snapshot),
         })()
         bridge = APIBridge(orchestrator=mock_orch)
         resp = bridge.get_ecosystem_status()
         self.assertTrue(resp.success)
-        self.assertIn("stats", resp.data)
-        self.assertTrue(resp.data["stats"]["running"])
+        self.assertTrue(resp.data["orchestrator"]["running"])
+        self.assertEqual(resp.data["orchestrator"]["colony_name"], "test")
+        self.assertEqual(resp.data["orchestrator"]["sync_count"], 5)
+
+    def test_get_ecosystem_status_cache_fallback(self):
+        from src.ui.api_bridge import APIBridge
+        # v7 contract: orchestrators without get_status_snapshot() fall back
+        # to their _status_cache dict.
+        mock_orch = type("MockOrch", (), {
+            "_status_cache": {"orchestrator": {"running": False, "sync_count": 0}},
+        })()
+        bridge = APIBridge(orchestrator=mock_orch)
+        resp = bridge.get_ecosystem_status()
+        self.assertTrue(resp.success)
+        self.assertFalse(resp.data["orchestrator"]["running"])
 
 
 class TestTUIRendererEcosystem(unittest.TestCase):

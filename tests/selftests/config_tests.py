@@ -15,6 +15,21 @@ class TestSettings(unittest.TestCase):
 
     def setUp(self):
         from src.config.settings import reset_settings
+        # v7.0.0: APISettings is fail-closed — jwt_secret MUST be provided via
+        # MULTICOLONY_API_JWT_SECRET (or MULTICOLONY_DEBUG must be set).
+        # Provide a throwaway per-test value so the singleton can be built,
+        # and restore the environment + settings cache afterwards.
+        self._old_jwt_secret = os.environ.get("MULTICOLONY_API_JWT_SECRET")
+        os.environ["MULTICOLONY_API_JWT_SECRET"] = "selftests-dummy-not-a-real-secret"
+        self.addCleanup(self._restore_env_and_settings)
+        reset_settings()
+
+    def _restore_env_and_settings(self):
+        from src.config.settings import reset_settings
+        if self._old_jwt_secret is None:
+            os.environ.pop("MULTICOLONY_API_JWT_SECRET", None)
+        else:
+            os.environ["MULTICOLONY_API_JWT_SECRET"] = self._old_jwt_secret
         reset_settings()
 
     def test_get_settings(self):
