@@ -14,7 +14,12 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from selftest_support import restore_root_logging, snapshot_root_logging
+try:
+    from selftest_support import restore_root_logging, snapshot_root_logging
+except ImportError:  # package-style discovery (-t <repo root>): not top-level
+    from tests.selftests.selftest_support import (
+        restore_root_logging, snapshot_root_logging,
+    )
 
 
 class TestGraphTracker(unittest.TestCase):

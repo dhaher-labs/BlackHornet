@@ -15,7 +15,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from selftest_support import close_event_loop
+try:
+    from selftest_support import close_event_loop
+except ImportError:  # package-style discovery (-t <repo root>): not top-level
+    from tests.selftests.selftest_support import close_event_loop
 
 
 class TestColonyEcosystemTypes(unittest.TestCase):
