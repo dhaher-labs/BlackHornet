@@ -1,0 +1,41 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+.env
+.env.*
+!.env.example
+
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+*.log
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- v7 runtime state & local hygiene (PLAN F3 + ship step 1) ---
+# Runtime state is regenerable; never track it (was 61% of the tree).
+data/
+exports/
+logs/
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+# Local-only audit material — never enters the shipped history.
+agent-ctx/
