@@ -37,8 +37,8 @@ bridge → result looped back → final answer).
 - **`crates/bh-rtd/src/infinity_adapter.rs`** (feature `infinity`) — memory
   seam over the verified Infinity 0.2.0 API (`ConversationStore`,
   `StateStore`, `ThreadId`, `InMemory*Store`); constructs real Infinity
-  types, persists nothing (Phase 3 replaces the in-memory stores with BH
-  MemoryFederation-backed implementations).
+  types, persists nothing (persistence goes through `bh_rtd::memory`, the
+  Phase 3 seam below).
 - **`crates/bh-rtd/src/jeumpa.rs`** (feature `infinity`) —
   [`JeumpaProvider`]: the real
   `infinity_provider_protocol::ModelProvider` (`list_models` +
@@ -52,6 +52,14 @@ bridge → result looped back → final answer).
   translated into `StreamChunk::ToolCall` so the Infinity runtime executes
   it and loops the result back. Malformed or partial uses of the prefix pass
   through as plain text — nothing is fabricated.
+- **`crates/bh-rtd/src/memory.rs`** (feature `bridge`) — the Phase 3
+  **memory seam**: bh-rtd-owned `ConversationStore` / `StateStore` /
+  `SharedMemoryStore` traits (zero Infinity types — R10) mirroring the
+  Infinity 0.2.0 shapes, implemented by `UdsMemoryClient` over BH bridge
+  protocol v1 against the Python peer `src/memory/rtd_memory_server.py`
+  (see below). Fail-loud: `ok:false` → `MemoryError::Server`, result-shape
+  drift → `MemoryError::Protocol`, downed peer → `MemoryError::Transport`
+  — never a fabricated empty answer.
 - **`crates/bh-mcp-bridge`** — the Phase 1 `infinity-mcp-bridge` deliverable
   (local crate name; the upstream `infinity-mcp-bridge =0.2.0` crate is a
   different artifact):
@@ -69,9 +77,11 @@ bridge → result looped back → final answer).
 - **Tests** — all hermetic (Rust mock UDS peers; no Python process, no
   network, no secrets): `bh-rtd/tests/smoke.rs` (5 + 3 infinity-gated),
   `bh-rtd/tests/uds.rs` (4), `bh-rtd/tests/jeumpa.rs` (10),
-  `bh-mcp-bridge/tests/mcp_bridge.rs` (5),
+  `bh-rtd/tests/memory.rs` (11), `bh-mcp-bridge/tests/mcp_bridge.rs` (5),
   `bh-mcp-bridge/tests/agent_wiring.rs` (3), plus catalog and tool-bridge
-  unit tests.
+  unit tests. The single deliberate exception is the Phase 3 exit-criteria
+  proof `bh-rtd/tests/memory_e2e.rs` (2), which spawns the real Python
+  memory peer — see below.
 
 ## Phase 2 status (the runtime wedge is live)
 
@@ -103,7 +113,39 @@ Phase 2 deliverable — "`bh-rtd` Rust daemon embedding `infinity-agent-core`
   (8: lifecycle, timers-across-restart incl. SIGKILL, live-bind refusal,
   protocol failures), `bh-rtd/tests/timers.rs` (journal semantics),
   `bh-rtd/tests/infinity_host.rs` (thread lifecycle). Workspace total:
-  **64 Rust tests green** in both hermetic and full modes.
+  **77 Rust tests green** (64 Phase 2 + 13 Phase 3) in both hermetic and
+  full modes.
+
+## Phase 3 status (the memory seam is live)
+
+Phase 3 deliverable — "Infinity `ConversationStore`/`StateStore` over BH
+SQLite FTS5 (+ ChromaDB read-through). Exit criteria: Hibernating agents
+persist into BH MemoryFederation" — is complete:
+
+- **`crates/bh-rtd/src/memory.rs`** — the seam: bh-rtd-owned
+  `ConversationStore` / `StateStore` / `SharedMemoryStore` traits mirroring
+  the verified Infinity 0.2.0 shapes with documented mapping deltas
+  (server-minted thread ids, BH role/content messages, hibernation KV
+  state, federation share/recall — Infinity's processed-id/subscription
+  tables have no real BH counterpart and are NOT faked). R10: zero
+  Infinity types cross this boundary; the sync seam can be wrapped by a
+  future async adapter without touching the wire contract.
+- **`src/memory/rtd_memory_server.py`** — the Python peer (additive, ships
+  the existing stack): `conversation.*` → `SessionMemory` (SQLite),
+  `state.*` → `MemorySystem` LTM (SQLite + FTS5), `federation.share`/
+  `recall` → `MemoryFederation`, `memory.episodes` → episodic SQLite,
+  `health`. Unknown/closed sessions and malformed params are `ok:false`
+  (-32602) — the Rust side gets typed errors, never empty-but-successful
+  data. `conversation.close` is the hibernate step: closed session +
+  `MemoryFederation` hibernation record + durable `hibernate` episode.
+- **Exit-criteria proof** — `bh-rtd/tests/memory_e2e.rs` spawns the real
+  peer and walks one agent through hibernate (create → append → set_state
+  → close → federation recall → episode) and a SIGKILL restart: the
+  conversation, closed status, state JSON and hibernation trail are read
+  back through the seam from the same SQLite files. ChromaDB read-through
+  is documented as post-MVP in both docstrings — deliberately not faked.
+- **Tests** — `bh-rtd/tests/memory.rs` (11, hermetic mock peer — the wire
+  contract reference), `bh-rtd/tests/memory_e2e.rs` (2, real Python peer).
 
 ## Peer status (honest)
 
@@ -111,13 +153,14 @@ Phase 2 deliverable — "`bh-rtd` Rust daemon embedding `infinity-agent-core`
 |---|---|
 | `src/colony/jeumpa_uds_server.py` (brain: `health`/`models`/`complete`) | SHIPPED (additive; wraps the real `JeumpaBrain`, `0600` socket) |
 | `src/agent_tools/uds_server.py` (tools: `health`/`tools/list`/`tools/call`) | SHIPPED (Phase 1, commit 8aaba5b; wraps the real `ToolRegistry`, `0600` socket) |
+| `src/memory/rtd_memory_server.py` (memory: `health`/`conversation.*`/`state.*`/`federation.*`/`memory.episodes`) | SHIPPED (Phase 3, Task 19-b; wraps the real `SessionMemory`/`MemorySystem`/`MemoryFederation`, `0600` socket) |
 
 ## What is NOT here yet (Phases 2-5 of PLAN.md §4)
 
 | Phase | Missing deliverable |
 |---|---|
 | 0 (rest) | `src/bridge/infinity/` RAP round-trip (the adapter contract doc landed in Phase 2: `docs/02-arch/infinity-adapter-contract.md`) |
-| 3 | Infinity `ConversationStore`/`StateStore` backed by BH SQLite FTS5 `MemoryFederation` |
+| 3 (rest) | ChromaDB read-through (documented post-MVP in `src/memory/rtd_memory_server.py` + `bh_rtd::memory` docstrings — not faked) |
 | 4 | native Rust RAP tool servers (shell/file/search) |
 | 5 | watchdog/heartbeat via `sleep_until_event_or_input`; UI integration |
 

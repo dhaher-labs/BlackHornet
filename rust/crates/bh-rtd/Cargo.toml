@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges + Phase 2 runtime wedge (AgentHost contract, BH_RUNTIME gate, InfinityHost, durable timers, JeumpaProvider, BH UDS bridge protocol, `bh-rtd` daemon binary)."
+description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges + Phase 2 runtime wedge (AgentHost contract, BH_RUNTIME gate, InfinityHost, durable timers, JeumpaProvider, BH UDS bridge protocol, `bh-rtd` daemon binary) + Phase 3 memory seam (Infinity-shaped ConversationStore/StateStore over the BH memory peer)."
 
 [features]
 # Default ON: the plain `cargo build` / `cargo test` path exercises the real
