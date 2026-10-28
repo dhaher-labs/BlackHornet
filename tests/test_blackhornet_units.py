@@ -30,7 +30,7 @@ class TestBaseAgent(unittest.TestCase):
 
     def test_import_agent_state_enum(self):
         try:
-            from src.bh_types.agent import AgentState
+            from src.colony_types.models import AgentState
             self.assertIn("IDLE", AgentState.__members__)
             self.assertIn("RUNNING", AgentState.__members__)
             self.assertIn("ERROR", AgentState.__members__)
@@ -39,7 +39,7 @@ class TestBaseAgent(unittest.TestCase):
 
     def test_agent_config_import(self):
         try:
-            from src.bh_types.agent import AgentConfig
+            from src.colony_types.agent import AgentConfig
             self.assertTrue(True)
         except ImportError as e:
             self.skipTest(f"AgentConfig import failed: {e}")

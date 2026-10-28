@@ -1,8 +1,10 @@
 """Tests for src/colony_types — Pydantic v2 models and enums.
 
-v7.0.0: ``src/types.py`` was removed in the clean rebuild; the canonical
-type system now lives in ``src/colony_types`` (with ``src/bh_types`` for the
-core runtime types).
+v7.0.0: ``src/types.py`` was removed in the clean rebuild. Per
+docs/11-adr/ADR-002-type-system-duality.md the canonical CORE type system
+is ``src/colony_types``; ``src/bh_types`` is the ecosystem/agent-tools
+surface (EcosystemState, tools, messages, memory, events) only — its dead
+duplicates (colony.py, agent.py) were removed in Task 18.
 """
 
 from __future__ import annotations

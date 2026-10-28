@@ -16,6 +16,7 @@ class UnifiedLauncher:
     - Web UI (src/ui/)
     - Graph system (src/graph/)
     - Memory system (src/memory/)
+    - Ecosystem orchestrator (src/colony/orchestrator.py, own loop thread)
     - Event bus bridging (src/integration/event_hub.py)
     - Provider hub (src/integration/provider_hub.py)
     - Graph tracker (src/integration/graph_tracker.py)
@@ -80,13 +81,29 @@ class UnifiedLauncher:
         except Exception as exc:
             results["memory_adapter"] = str(exc)
 
-        # 6. API bridge
+        # 6. Ecosystem orchestrator (K2/K4: async colony core on its own loop thread)
+        try:
+            from src.integration.ecosystem_runner import EcosystemRunner
+            eco = EcosystemRunner(
+                graph_store=self._components.get("graph_store"),
+                memory_system=self._components.get("memory_system"),
+                event_bus=self._components.get("event_bus"),
+            )
+            eco.start()
+            self._components["ecosystem"] = eco
+            started.append("ecosystem")
+            results["ecosystem"] = "ok"
+        except Exception as exc:
+            results["ecosystem"] = str(exc)
+
+        # 7. API bridge
         try:
             from src.ui.api_bridge import APIBridge
             ab = APIBridge(
                 graph_store=self._components.get("graph_store"),
                 memory_system=self._components.get("memory_system"),
                 event_bus=self._components.get("event_bus"),
+                orchestrator=getattr(self._components.get("ecosystem"), "orchestrator", None),
             )
             self._components["api_bridge"] = ab
             started.append("api_bridge")
@@ -94,7 +111,7 @@ class UnifiedLauncher:
         except Exception as exc:
             results["api_bridge"] = str(exc)
 
-        # 7. Web server
+        # 8. Web server
         try:
             from src.ui.web_server import WebServer
             ws = WebServer(port=web_port, api_bridge=self._components.get("api_bridge"))
@@ -107,7 +124,7 @@ class UnifiedLauncher:
         except Exception as exc:
             results["web_server"] = str(exc)
 
-        # 8. Dashboard
+        # 9. Dashboard
         try:
             from src.ui.dashboard import Dashboard
             db = Dashboard(
@@ -120,7 +137,7 @@ class UnifiedLauncher:
         except Exception as exc:
             results["dashboard"] = str(exc)
 
-        # 9. Provider hub
+        # 10. Provider hub
         try:
             from src.integration.provider_hub import ProviderHub
             ph = ProviderHub()
@@ -130,7 +147,7 @@ class UnifiedLauncher:
         except Exception as exc:
             results["provider_hub"] = str(exc)
 
-        # 10. Keeper extension
+        # 11. Keeper extension
         try:
             from src.integration.keeper_extension import KeeperExtension
             self._components["keeper_extension"] = KeeperExtension
@@ -139,7 +156,7 @@ class UnifiedLauncher:
         except Exception as exc:
             results["keeper_extension"] = str(exc)
 
-        # 11. AMC bridge
+        # 12. AMC bridge
         try:
             from src.integration.amc_bridge import AMCBridge
             amc = AMCBridge()
@@ -155,7 +172,7 @@ class UnifiedLauncher:
         except Exception as exc:
             results["amc_bridge"] = str(exc)
 
-        # 12. AMC tools (register if AMC tool registry is available)
+        # 13. AMC tools (register if AMC tool registry is available)
         try:
             from src.integration.amc_tools import AMCToolRegistrar
             registrar = AMCToolRegistrar()
@@ -183,6 +200,11 @@ class UnifiedLauncher:
     def stop_all(self) -> None:
         if "web_server" in self._components:
             self._components["web_server"].stop()
+        if "ecosystem" in self._components:
+            try:
+                self._components["ecosystem"].stop()
+            except Exception as exc:
+                logger.warning("ecosystem_runner_stop_error err=%s", exc)
         if "event_bus" in self._components:
             self._components["event_bus"].clear_history()
         self._running = False

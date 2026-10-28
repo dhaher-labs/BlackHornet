@@ -160,6 +160,7 @@ class EcosystemOrchestrator:
             session_recorder is not None,
             memory_system is not None,
             lifecycle_recorder is not None,
+            mcp_server is not None,
         )
 
     async def start(self) -> None:
