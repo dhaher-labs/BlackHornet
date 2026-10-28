@@ -16,7 +16,7 @@ import sys
 import textwrap
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -101,7 +101,7 @@ def _write_fake_daemon(tmp_path: Path) -> Path:
     return script
 
 
-def _read_env_snapshot(state_dir: Path) -> Dict[str, Any]:
+def _read_env_snapshot(state_dir: Path) -> dict[str, Any]:
     with open(state_dir / "env.json", encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -236,7 +236,7 @@ class TestRustLifecycle:
         # Cleanup: socket gone, state journals prove the protocol ran.
         assert not os.path.exists(str(run_dir / "bh-rtd.sock"))
         assert _read_methods(state_dir)[0] == "health"  # health was asked
-        assert _read_methods(state_dir)[-1] == "host/shutdown"  # graceful first
+        assert _read_methods(state_dir)[-1] == "shutdown"  # graceful first
         assert launcher.is_active is False
 
         # Idempotent shutdown.
@@ -302,7 +302,7 @@ class TestOneShotClient:
         server = socket_mod.socket(socket_mod.AF_UNIX, socket_mod.SOCK_STREAM)
         server.bind(sock_path)
         server.listen(1)
-        seen: Dict[str, Any] = {}
+        seen: dict[str, Any] = {}
 
         def serve() -> None:
             conn, _ = server.accept()

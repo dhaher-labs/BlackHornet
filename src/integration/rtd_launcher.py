@@ -49,7 +49,7 @@ Fail-loud semantics
 Startup failures (missing binary, dead child, socket never appears, health
 check not ``ok: true``) raise ``RuntimeError`` with an actionable message;
 the failed child is reaped first so no orphans are left behind. Shutdown is
-best-effort and idempotent and never raises: graceful ``host/shutdown``
+best-effort and idempotent and never raises: graceful ``shutdown``
 request, then ``terminate()`` → bounded wait → ``kill()``, then socket
 cleanup.
 
@@ -72,8 +72,9 @@ import stat
 import subprocess
 import tempfile
 import time
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +95,10 @@ DEFAULT_MAX_THREADS = "8"
 #: Bounded wait for BH_RTD_SOCKET to appear and answer "health".
 HEALTH_TIMEOUT_S = 15.0
 
-#: Graceful shutdown method on the daemon control socket.
-SHUTDOWN_METHOD = "host/shutdown"
+#: Graceful shutdown method on the daemon control socket. This is the real
+#: daemon's method name (``bh_rtd::daemon::dispatch``); sending an unknown
+#: method would be answered ``-32601`` and silently ignored here.
+SHUTDOWN_METHOD = "shutdown"
 
 _POLL_INTERVAL_S = 0.05
 _REQUEST_TIMEOUT_S = 2.0
@@ -304,7 +307,7 @@ class RtdLauncher:
     def shutdown(self, timeout: float = 5.0) -> None:
         """Stop the daemon. Best-effort and idempotent; never raises.
 
-        Sequence: graceful ``host/shutdown`` request (protocol v1, ignored
+        Sequence: graceful ``shutdown`` request (protocol v1, ignored
         on failure) → ``terminate()`` → bounded wait (*timeout* seconds) →
         ``kill()`` if still alive → control-socket cleanup.
         """
