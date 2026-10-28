@@ -1,8 +1,9 @@
-# BlackHornet Rust workspace — Phase 0 scaffold ("bridges before ports").
+# BlackHornet Rust workspace — Phase 0 scaffold + Phase 1 bridges
+# ("bridges before ports").
 # See rust/README.md for scope; PLAN.md §4 for the full strangler-fig roadmap.
 [workspace]
 resolver = "2"
-members = ["crates/bh-rtd"]
+members = ["crates/bh-rtd", "crates/bh-mcp-bridge"]
 
 [workspace.package]
 edition = "2024"
@@ -18,6 +19,23 @@ repository = "https://github.com/mulkymalikuldhaher/BlackHornet"
 # Published on crates.io 2026-10-22; repository: hydro-project/infinity.
 infinity-agent-core = { version = "=0.2.0" }
 infinity-provider-protocol = { version = "=0.2.0" }
+# Direct pin for a transitive 0.2.0-batch crate: bh-mcp-bridge's Infinity
+# `Tool` implementation must NAME `rap_protocol::{ToolCallId, ProviderCallId}`
+# in its method signatures (the trait's own types), so it needs a direct edge.
+# rap-protocol is already in the dependency tree via infinity-agent-core, so
+# this adds no new package to Cargo.lock — it only makes the version explicit.
+rap-protocol = { version = "=0.2.0" }
+
+# Phase 1 bridge dependencies. These are ALREADY in the dependency tree via
+# infinity (no new packages enter Cargo.lock); declaring them here just makes
+# the shared versions explicit for the bridge crates.
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+futures-util = { version = "0.3" }
+async-trait = { version = "0.1" }
+
+# Local crates (so bh-mcp-bridge can share the BH bridge protocol client).
+bh-rtd = { path = "crates/bh-rtd" }
 
 [profile.release]
 # Small-binary release profile for the future bh-rtd daemon (Phase 2).

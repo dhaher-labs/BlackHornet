@@ -1,0 +1,50 @@
+[package]
+name = "bh-mcp-bridge"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "BlackHornet Phase 1 infinity-mcp-bridge surface — the BH tool catalog mirrored from src/agent_tools, the tools bridge client, and an Infinity runtime Tool implementation that executes BH tools over the UDS bridge protocol (no tool logic is ported)."
+
+[features]
+# Default ON: the plain `cargo build` / `cargo test` path exercises the full
+# Phase 1 surface (catalog + client + Infinity `Tool` impl). Use
+# `--no-default-features` for the hermetic std-only build (no Infinity, no
+# async runtime; the tests then ship std-only mock UDS servers).
+default = ["infinity"]
+# `infinity`: bridge BH tools into the Infinity runtime tool surface
+# (`BhBridgeTool` implementing `infinity_agent_core::tools::Tool`). Implies
+# no other features; `bh-rtd` is not needed for this.
+infinity = [
+  "dep:infinity-agent-core",
+  "dep:infinity-provider-protocol",
+  "dep:rap-protocol",
+  "dep:async-trait",
+]
+
+[dependencies]
+# Shared BH bridge protocol v1 transport (std-only).
+bh-rtd = { workspace = true, default-features = false, features = ["bridge"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Infinity runtime tool surface (feature `infinity`). All are already in
+# the workspace dependency tree via bh-rtd's `infinity` feature, so no new
+# packages enter Cargo.lock.
+infinity-agent-core = { workspace = true, optional = true }
+# ToolResult / ToolResultContent / UserContent types for the Tool impl.
+infinity-provider-protocol = { workspace = true, optional = true }
+# Needed to NAME rap_protocol::{ToolCallId, ProviderCallId} in the Tool
+# trait's method signatures (pinned via workspace.dependencies).
+rap-protocol = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The agent-wiring integration test drives a real (local, in-process)
+# Infinity agent system: current-thread runtime + timers for test timeouts.
+tokio = { version = "1", features = ["macros", "rt", "time"] }
+# The wiring test composes the full Phase 1 picture: JeumpaProvider (bh-rtd
+# `infinity` feature) as the brain + BhBridgeTool as the tools. This only
+# widens features for tests; no new packages.
+bh-rtd = { workspace = true, features = ["infinity"] }

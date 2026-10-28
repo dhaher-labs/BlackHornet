@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "BlackHornet Rust runtime daemon — Phase 0 scaffold (AgentHost contract, BH_RUNTIME gate, feature-gated infinity adapter)."
+description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges (AgentHost contract, BH_RUNTIME gate, feature-gated infinity adapter, JeumpaProvider, BH UDS bridge protocol)."
 
 [features]
 # Default ON: the plain `cargo build` / `cargo test` path exercises the real
@@ -13,11 +13,19 @@ description = "BlackHornet Rust runtime daemon — Phase 0 scaffold (AgentHost c
 # hermetic std-only build (used by the Phase 0 quality gate and by
 # network-less environments).
 default = ["infinity"]
-infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol"]
+# `bridge`: the BH bridge protocol v1 transport (UDS JSON-lines client) used
+# by the Phase 1 bridges (JeumpaProvider, bh-mcp-bridge). std + serde_json.
+bridge = ["dep:serde_json"]
+# `infinity`: the Infinity integration (adapter stub + Phase 1
+# JeumpaProvider). Implies `bridge` — JeumpaProvider speaks the UDS protocol.
+infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol", "dep:futures-util", "dep:async-trait", "bridge"]
 
 [dependencies]
 infinity-agent-core = { workspace = true, optional = true }
 infinity-provider-protocol = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
 
 # NOTE: no tokio *dependency*. The verified Infinity trait API is async
 # (`#[async_trait]`), so the adapter exposes async methods, but Phase 0 ships

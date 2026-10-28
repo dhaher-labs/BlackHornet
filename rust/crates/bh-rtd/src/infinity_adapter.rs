@@ -131,18 +131,23 @@ impl BhMemorySeam {
     }
 }
 
-/// Reminder seam for Phase 1 (no behaviour yet, by design):
+/// Phase 1 seam (realised — see `../jeumpa.rs` and the `bh-mcp-bridge`
+/// crate):
 ///
-/// `JeumpaProvider` must implement `infinity_provider_protocol::ModelProvider`
-/// (a `Send + Sync` trait) over `src/colony/jeumpa_brain.py` semantics:
-/// task-profile routing expressed as provider/model selection, cooldowns as
-/// provider error classes, response caching kept BH-side.
-///
-/// TODO(Phase 1): implement the trait once the UDS/remote provider decision
-/// (PLAN.md §4 Phase 1: "UDS provider may stay Python") is taken; the MCP
-/// side of Phase 1 is NOT this crate — it is the `infinity-mcp-bridge`
-/// crate (also published at 0.2.0) pointed at BH `agent_tools` MCP servers.
+/// * `JeumpaProvider` implements `infinity_provider_protocol::ModelProvider`
+///   over `src/colony/jeumpa_brain.py` semantics: task-profile routing
+///   expressed as provider/model selection, cooldowns as provider error
+///   classes, response caching kept BH-side.
+/// * The MCP side of Phase 1 is the `bh-mcp-bridge` crate (local, named to
+///   avoid clashing with the upstream-published `infinity-mcp-bridge` crate):
+///   the BH tool catalog mirrored from `src/agent_tools/`, the UDS tools
+///   client, and the Infinity `Tool` implementation. Its Python peer is
+///   `src/agent_tools/uds_server.py` (shipped).
+/// * The Phase 1 exit criterion (an Infinity agent with 100% BH brain +
+///   tools) is exercised end-to-end offline in
+///   `bh-mcp-bridge/tests/agent_wiring.rs`.
 #[allow(dead_code)]
 pub const PHASE_1_SEAM: &str =
-    "Jeumpa Brain -> infinity_provider_protocol::ModelProvider; \
-     agent_tools -> infinity-mcp-bridge (Phase 1)";
+    "Jeumpa Brain -> infinity_provider_protocol::ModelProvider (bh-rtd::jeumpa); \
+     agent_tools -> bh-mcp-bridge (catalog + client + infinity Tool impl; \
+     Python peer planned)";

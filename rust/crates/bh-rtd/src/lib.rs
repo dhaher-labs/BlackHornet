@@ -1,10 +1,12 @@
-//! `bh-rtd` — BlackHornet Rust runtime daemon (Phase 0 scaffold).
+//! `bh-rtd` — BlackHornet Rust runtime daemon (Phase 0 scaffold + Phase 1
+//! bridges).
 //!
 //! Phase 0 of the Rust + Infinity roadmap (PLAN.md §4) is "bridges before
-//! ports": this crate only fixes the *contracts* the Rust side will honour.
-//! It deliberately contains almost no behaviour — nothing here replaces or
-//! wraps any Python subsystem, and [`RuntimeFlavor::Python`] is the default
-//! until a real wedge lands (Phase 2).
+//! ports": this crate fixes the *contracts* the Rust side will honour, and
+//! Phase 1 adds the first two real bridges — both of which call the working
+//! Python BlackHornet over a Unix domain socket instead of re-implementing
+//! it. [`RuntimeFlavor::Python`] remains the default until the Phase 2 wedge
+//! lands.
 //!
 //! What exists today:
 //! * [`host`] — the [`AgentHost`](host::AgentHost) contract for colony member
@@ -16,11 +18,23 @@
 //!   integration stub over the **verified** `infinity-agent-core` 0.2.0 API,
 //!   mapping BlackHornet concepts onto Infinity primitives per the Task 12-c
 //!   researcher mapping.
+//! * `uds` (feature `bridge`, implied by `infinity`) — the BH bridge
+//!   protocol v1 client: one JSON value per line over a UDS, one request per
+//!   connection, `{id, method, params}` → `{id, ok, result|error}`.
+//! * `jeumpa` (feature `infinity`) — [`jeumpa::JeumpaProvider`], an Infinity
+//!   [`ModelProvider`] that bridges to the Python Jeumpa Brain
+//!   (`src/colony/jeumpa_uds_server.py`, shipped): task profiles as models,
+//!   cooldowns as provider error classes, no provider logic re-implemented
+//!   in Rust. Tool definitions ride to the peer and are declared to the
+//!   text-only model with the `BH_TOOL_CALL` reply convention this provider
+//!   translates into [`infinity_provider_protocol::StreamChunk::ToolCall`].
 //!
-//! What does NOT exist yet (honest list): the daemon binary, agent thread
-//! execution, MCP bridging, memory-seam persistence, RAP tool servers,
-//! watchdog — i.e. Phases 0–5 deliverables beyond this scaffold. See
-//! `rust/README.md`.
+//! The MCP side of Phase 1 is the sibling crate `bh-mcp-bridge` (BH tool
+//! catalog + tools client + Infinity `Tool` impl over
+//! `src/agent_tools/`; its Python peer is
+//! `src/agent_tools/uds_server.py`, shipped). Together they satisfy the Phase 1 exit
+//! criterion — see `bh-mcp-bridge/tests/agent_wiring.rs`, which runs a real
+//! Infinity agent with this brain + those tools fully offline.
 //!
 //! Rust + Infinity roadmap posture (PLAN.md §4): *adopt the protocol, embed
 //! the runtime, never port the colony.* The trading money-path is excluded
@@ -31,8 +45,14 @@
 
 pub mod host;
 
+#[cfg(feature = "bridge")]
+pub mod uds;
+
 #[cfg(feature = "infinity")]
 pub mod infinity_adapter;
+
+#[cfg(feature = "infinity")]
+pub mod jeumpa;
 
 /// Runtime selector driven by the `BH_RUNTIME` environment variable.
 ///
