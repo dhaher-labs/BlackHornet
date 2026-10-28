@@ -19,15 +19,17 @@ catalog as its tools performs a complete tool-calling turn (declare →
 bridge → result looped back → final answer).
 
 - **`crates/bh-rtd/src/host.rs`** — the [`AgentHost`] contract for colony
-  member agents (`spawn_agent` / `send_event` / `shutdown`), plus a fail-loud
-  `ColdHost` placeholder (the repo bans fake success). Phase 2 brings the
-  real daemon behind it.
+  member agents (`spawn_agent` / `send_event` / `shutdown`, plus the additive
+  `schedule_timer`), with `ColdHost` kept as the hermetic fail-loud
+  placeholder (the repo bans fake success). The real implementation lives in
+  `crates/bh-rtd/src/infinity_host.rs` (Phase 2).
 - **`crates/bh-rtd/src/lib.rs`** — the `BH_RUNTIME` gate: `RuntimeFlavor`
   enum `{ Python, Rust }`, env-driven, **defaulting to `Python`**, fail-closed
   on unknown values.
-- **`crates/bh-rtd/src/uds.rs`** (feature `bridge`) — BH bridge protocol v1
-  client: UTF-8 JSON, one value per `\n`-terminated line over a Unix domain
-  socket, **one request per connection**; `{id, method, params}` →
+- **`crates/bh-bridge-uds`** (shared crate, re-exported as `bh_rtd::uds`,
+  feature `bridge`) — BH bridge protocol v1 client (sync + tokio-async):
+  UTF-8 JSON, one value per `\n`-terminated line over a Unix domain socket,
+  **one request per connection**; `{id, method, params}` →
   `{id, ok, result|error}` with JSON-RPC-flavoured error codes
   (-32700/-32602/-32601/-32603). `ok: false` is reserved for bridge/protocol
   failures; business failures travel as `ok: true` with the failure inside
@@ -71,19 +73,50 @@ bridge → result looped back → final answer).
   `bh-mcp-bridge/tests/agent_wiring.rs` (3), plus catalog and tool-bridge
   unit tests.
 
+## Phase 2 status (the runtime wedge is live)
+
+Phase 2 deliverable — "`bh-rtd` Rust daemon embedding `infinity-agent-core`
+(threads, `spawn_thread`≈sub_agent pool, durable timers)" — is complete:
+
+- **`crates/bh-rtd/src/bin/bh-rtd.rs`** — the daemon binary (feature
+  `daemon`): binds `BH_RTD_SOCKET` (`0600`), traps `SIGTERM`/`SIGINT`, and
+  serves the control plane over BH bridge protocol v1: `health`,
+  `spawn_thread`, `send_event`, `shutdown_thread`, `list_threads`,
+  `schedule_timer`, `cancel_timer`, `list_timers`, `shutdown`. Fail-loud on
+  missing env; refuses to bind a live socket; rebinds stale ones.
+- **`crates/bh-rtd/src/infinity_host.rs`** — `InfinityHost`, the real
+  `AgentHost` over `infinity-agent-core` 0.2.0 threads: bounded sub-agent
+  pool (`BH_RTD_MAX_THREADS`, overflow = loud business refusal), brain via
+  `JeumpaProvider`, tools via `bh-mcp-bridge`.
+- **`crates/bh-rtd/src/timers.rs`** — durable timer wheel: JSON journal
+  (`<BH_RTD_STATE_DIR>/timers.json`, atomic `0600` writes), replay on boot,
+  `pending → fired → delivered` / `cancelled` statuses; a fired timer whose
+  target thread is gone stays `fired` — never re-fired, never faked.
+- **Python seam** (this repo): `src/colony/runtime_gate.py` routes
+  `SubagentPool.submit` to the daemon when `BH_RUNTIME=rust` (fail-loud,
+  no silent fallback); `src/integration/rtd_launcher.py` spawns/
+  health-checks/shuts the daemon down from `UnifiedLauncher` step 6b.
+  Default (`python`) boots are byte-identical to before.
+- **Wire contracts** — pinned in `docs/02-arch/infinity-adapter-contract.md`
+  (folds the Phase 0 adapter-contract-doc remainder).
+- **Tests** — end-to-end against the real binary: `bh-rtd/tests/daemon.rs`
+  (8: lifecycle, timers-across-restart incl. SIGKILL, live-bind refusal,
+  protocol failures), `bh-rtd/tests/timers.rs` (journal semantics),
+  `bh-rtd/tests/infinity_host.rs` (thread lifecycle). Workspace total:
+  **64 Rust tests green** in both hermetic and full modes.
+
 ## Peer status (honest)
 
 | Peer | Status |
 |---|---|
 | `src/colony/jeumpa_uds_server.py` (brain: `health`/`models`/`complete`) | SHIPPED (additive; wraps the real `JeumpaBrain`, `0600` socket) |
-| `src/agent_tools/uds_server.py` (tools: `health`/`tools/list`/`tools/call`) | PLANNED, not yet written — Phase 1's own rule is that the bridge comes *before* the BH MCP servers. The contract it must serve is pinned by `BhToolsClient` + `ToolManifest` + `validate_peer_manifest` and the mock-peer tests. |
+| `src/agent_tools/uds_server.py` (tools: `health`/`tools/list`/`tools/call`) | SHIPPED (Phase 1, commit 8aaba5b; wraps the real `ToolRegistry`, `0600` socket) |
 
 ## What is NOT here yet (Phases 2-5 of PLAN.md §4)
 
 | Phase | Missing deliverable |
 |---|---|
-| 0 (rest) | adapter contract doc + `src/bridge/infinity/` RAP round-trip |
-| 2 | the actual `bh-rtd` daemon embedding `infinity-agent-core` (threads, sub-agent pool, timers) behind `ColdHost` |
+| 0 (rest) | `src/bridge/infinity/` RAP round-trip (the adapter contract doc landed in Phase 2: `docs/02-arch/infinity-adapter-contract.md`) |
 | 3 | Infinity `ConversationStore`/`StateStore` backed by BH SQLite FTS5 `MemoryFederation` |
 | 4 | native Rust RAP tool servers (shell/file/search) |
 | 5 | watchdog/heartbeat via `sleep_until_event_or_input`; UI integration |
@@ -133,20 +166,39 @@ cargo test
 cargo test -p bh-mcp-bridge --features infinity
 ```
 
-Note: `tokio` is a **dev-dependency / test-only** tool in this workspace.
-The verified Infinity trait API is async (`#[async_trait]`); the Jeumpa
-provider performs its UDS round-trip with blocking std I/O inside the async
-methods (documented, deliberate — Phase 2 moves it onto the runtime's
-executor).
+Note: since Phase 2 `tokio` is a **real dependency** of `bh-rtd` behind the
+`tokio-executor` feature (implied by `infinity`/`daemon`): JeumpaProvider's
+UDS round-trips run on the tokio executor (`tokio::net::UnixStream`) and the
+daemon runs a multi-thread control plane plus a dedicated colony executor.
+The shared `bh-bridge-uds` crate keeps a std-only sync client so the
+hermetic path stays tokio-free.
+
+### Daemon build & run (Phase 2)
+
+```bash
+cd rust/
+cargo build --release          # → rust/target/release/bh-rtd
+
+BH_RTD_SOCKET=/tmp/bh-rtd.sock \
+BH_RTD_STATE_DIR=/tmp/bh-rtd-state \
+BH_RTD_BRAIN_SOCKET=/tmp/jeumpa.sock   # optional; threads need a brain
+BH_RTD_TOOLS_SOCKET=/tmp/tools.sock    # optional; tools bridge
+./target/release/bh-rtd
+```
+
+Python side: `BH_RUNTIME=rust` + `BH_RTD_BIN` (optional) —
+`UnifiedLauncher` spawns and health-checks the daemon automatically
+(`src/integration/rtd_launcher.py`). See
+`docs/02-arch/infinity-adapter-contract.md` for the full env/method table.
 
 ## `BH_RUNTIME` contract
 
-| Value | Meaning | Phase 1 behaviour |
+| Value | Meaning | Behaviour |
 |---|---|---|
 | unset / empty | default | `RuntimeFlavor::Python` — Python stays the runtime |
 | `python` | Python runtime | same as default |
-| `rust` | Rust wedge | selected, but no daemon exists yet (Phase 2) |
-| anything else | error | `RuntimeError::UnknownRuntime` (fail-closed, never silently "falls back") |
+| `rust` | Rust wedge | the `bh-rtd` daemon is spawned by `UnifiedLauncher` (`RtdLauncher`) and colony thread spawns route to it (`runtime_gate`); fail-loud if the daemon is unreachable |
+| anything else | error | `RuntimeError::UnknownRuntime` / `ValueError` (fail-closed, never silently "falls back") |
 
 The values mirror PLAN.md's `BH_RUNTIME=python|rust` flag; the environment
 variable is read by `RuntimeFlavor::from_env()`.
