@@ -44,7 +44,7 @@ bh-omega = "src.omega.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["src*"]
-exclude = ["tests*", "scripts*"]
+exclude = ["tests*", "scripts*", "src*.tests*"]
 
 [project.optional-dependencies]
 dev = [
