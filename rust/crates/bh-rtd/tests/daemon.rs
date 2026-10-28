@@ -586,3 +586,85 @@ fn missing_required_env_fails_loud_before_binding() {
     assert!(stderr.contains("BH_RTD_SOCKET"), "stderr: {stderr}");
     let _ = child.wait();
 }
+
+#[test]
+fn native_rap_tools_serve_tools_list_and_direct_calls() {
+    // Phase 4: the three native RAP tools are served by the daemon itself —
+    // `tools/list` flags them native, `tools/call` executes them in-process
+    // inside the workspace sandbox, and non-native names report not-found
+    // when no MCP proxy peer is wired.
+    let ws = temp_dir("tools-ws");
+    let daemon = DaemonProc::spawn(
+        "tools",
+        &[(
+            "BH_RTD_WORKSPACE_ROOT",
+            Box::leak(ws.to_string_lossy().into_owned().into_boxed_str()) as &str,
+        )],
+    );
+    let client = daemon.client();
+
+    // tools/list: exactly the native set, honestly flagged.
+    let listed = expect_ok(client.call("tools/list", &json!({})), "tools/list");
+    let tools = listed
+        .get("tools")
+        .and_then(Value::as_array)
+        .expect("tools array");
+    assert_eq!(tools.len(), 3, "native-only when no proxy peer is wired");
+    for tool in tools {
+        assert_eq!(tool.get("native").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            tool.get("transport").and_then(Value::as_str),
+            Some("native-rust")
+        );
+    }
+    let names: Vec<&str> = tools
+        .iter()
+        .filter_map(|t| t.get("name").and_then(Value::as_str))
+        .collect();
+    assert_eq!(names, vec!["file", "shell.execute", "search.web"]);
+
+    // Direct native call: write + read round-trip through the real engine.
+    let written = expect_ok(
+        client.call(
+            "tools/call",
+            &json!({"name": "file", "args": {"operation": "write", "path": "note.txt", "content": "hello phase 4\n"}}),
+        ),
+        "native write",
+    );
+    assert_eq!(written["success"], true, "{written}");
+    let read = expect_ok(
+        client.call(
+            "tools/call",
+            &json!({"name": "file", "args": {"operation": "read", "path": "note.txt"}}),
+        ),
+        "native read",
+    );
+    assert_eq!(read["output"], "hello phase 4\n");
+    assert!(ws.join("note.txt").exists(), "the write stayed in the sandbox");
+
+    // Blocked shell command: the peer's own failure shape — exit_code -2
+    // plus the policy message in stderr, never an execution.
+    let blocked = expect_ok(
+        client.call(
+            "tools/call",
+            &json!({"name": "shell.execute", "args": {"command": "rm -rf /"}}),
+        ),
+        "blocked shell",
+    );
+    assert_eq!(blocked["exit_code"], -2, "{blocked}");
+    assert!(blocked["stderr"]
+        .as_str()
+        .expect("stderr")
+        .starts_with("Command blocked by safety policy"));
+
+    // Non-native name with no proxy peer wired → not found (-32601).
+    let missing = expect_ok(
+        client.call("tools/call", &json!({"name": "code.operations", "args": {}})),
+        "proxy-less call",
+    );
+    assert_eq!(missing["success"], false);
+    assert_eq!(missing["error_code"], -32601);
+
+    daemon.shutdown_via_protocol();
+    let _ = std::fs::remove_dir_all(&ws);
+}

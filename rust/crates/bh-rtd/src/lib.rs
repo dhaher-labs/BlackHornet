@@ -61,6 +61,14 @@
 //!   SQLite+FTS5, MemoryFederation, episodic memory). Hibernating agents
 //!   persist their state + conversation into BH memory and read it back —
 //!   never touching SQLite from Rust.
+//! * `rap_tools` (feature `bridge`; `native_tool` behind `infinity`) — the
+//!   Phase 4 **native RAP tools**: `file` / `shell.execute` / `search.web`
+//!   executed by native Rust tool servers (mirrors of
+//!   `src/agent_tools/file_tool.py`, `shell.py` and `search.py`), served
+//!   directly by the daemon (`tools/list` catalog with `native` flags +
+//!   direct `tools/call` routing) instead of riding the MCP proxy
+//!   (`bh-mcp-bridge` → `src/agent_tools/uds_server.py`). Other tools keep
+//!   the proxy (PLAN.md §4 Phase 4 exit criterion).
 //!
 //! The MCP side of Phase 1 is the sibling crate `bh-mcp-bridge` (BH tool
 //! catalog + tools client + Infinity `Tool` impl over `src/agent_tools/`);
@@ -81,6 +89,9 @@ pub mod timers;
 
 #[cfg(feature = "bridge")]
 pub mod memory;
+
+#[cfg(feature = "bridge")]
+pub mod rap_tools;
 
 #[cfg(feature = "bridge")]
 pub use bh_bridge_uds as uds;

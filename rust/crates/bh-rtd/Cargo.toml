@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges + Phase 2 runtime wedge (AgentHost contract, BH_RUNTIME gate, InfinityHost, durable timers, JeumpaProvider, BH UDS bridge protocol, `bh-rtd` daemon binary) + Phase 3 memory seam (Infinity-shaped ConversationStore/StateStore over the BH memory peer)."
+description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges + Phase 2 runtime wedge (AgentHost contract, BH_RUNTIME gate, InfinityHost, durable timers, JeumpaProvider, BH UDS bridge protocol, `bh-rtd` daemon binary) + Phase 3 memory seam (Infinity-shaped ConversationStore/StateStore over the BH memory peer) + Phase 4 native RAP tools (file/shell.execute/search.web in-process engines behind the daemon `tools/list`/`tools/call`)."
 
 [features]
 # Default ON: the plain `cargo build` / `cargo test` path exercises the real
@@ -24,7 +24,7 @@ bridge = ["dep:bh-bridge-uds", "dep:serde_json"]
 # `infinity`: the Infinity integration (adapter + Phase 1 JeumpaProvider +
 # Phase 2 InfinityHost/daemon). Implies `bridge` — JeumpaProvider and the
 # daemon speak the UDS protocol — and pulls tokio for the runtime actor.
-infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol", "dep:futures-util", "dep:async-trait", "dep:tokio", "bridge"]
+infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol", "dep:rap-protocol", "dep:futures-util", "dep:async-trait", "dep:tokio", "bridge"]
 # `tools`: the `bh-rtd` binary wires BH tools (executed Python-side by
 # `src/agent_tools/uds_server.py`) into the Infinity tool surface via the
 # `bh-mcp-bridge` crate's `Tool` implementation (`BH_RTD_TOOLS_SOCKET`).
@@ -39,6 +39,11 @@ bh-bridge-uds = { workspace = true, optional = true }
 bh-mcp-bridge = { workspace = true, optional = true }
 infinity-agent-core = { workspace = true, optional = true }
 infinity-provider-protocol = { workspace = true, optional = true }
+# Phase 4 native RAP tools: `native_tool` names the Infinity/RAP tool-call
+# ids in their own protocol types (`ToolCallId`/`ProviderCallId`). Already
+# in the dependency tree via infinity-agent-core — no new package in
+# Cargo.lock; this only makes the edge direct.
+rap-protocol = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }

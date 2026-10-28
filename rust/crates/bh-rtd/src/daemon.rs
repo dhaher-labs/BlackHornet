@@ -26,6 +26,8 @@
 //! | `send_event` | `agent_id` (required), `kind?` (`task_assigned`\|`message_received`\|`health_tick`\|`custom`), `payload?` | `{accepted}` |
 //! | `shutdown_thread` | `agent_id` (required) | `{accepted, thread_id}` |
 //! | `list_threads` | — | `{threads: [{agent_id, thread_id, role, events_seen, last_event}]}` |
+//! | `tools/list` | — | `{tools: [{name, native, transport, category, autonomy_level, description, input_schema, output_schema}], count}` — the wired tool catalog (Phase 4: native RAP tools carry `native: true`) |
+//! | `tools/call` | `name` (required), `args?` | the tool's own result payload (business failures stay inside it, mirroring `src/agent_tools/uds_server.py`'s `tools/call`); unknown tools arrive as `{success: false, error, error_code: -32601}` |
 //! | `schedule_timer` | `delay_ms` (required > 0), `agent_id?`, `payload?` | `{accepted, timer_id}` |
 //! | `cancel_timer` | `timer_id` (required) | `{accepted}` |
 //! | `list_timers` | — | `{timers: [TimerRecord::to_json()]}` |
@@ -45,9 +47,12 @@
 //! `BH_RTD_MAX_THREADS`, `BH_RTD_BRAIN_SOCKET` + `BH_RTD_BRAIN_MODEL`
 //! (Jeumpa brain) and `BH_RTD_TOOLS_SOCKET` (`src/agent_tools/uds_server.py`
 //! peer; the binary then wires [`crate::infinity_host::InfinityHost`] with
-//! the `bh-mcp-bridge` tools). See `docs/02-arch/infinity-adapter-contract.md`
-//! for the full table. The binary also traps `SIGTERM`/`SIGINT` and turns
-//! them into the same graceful stop as the `shutdown` method.
+//! the tool surface: native RAP tools (`file`, `shell.execute`,
+//! `search.web`) served in-process plus the remaining catalog through the
+//! `bh-mcp-bridge` proxy — see [`ToolCatalogEntry`] and the binary). See
+//! `docs/02-arch/infinity-adapter-contract.md` for the full table. The
+//! binary also traps `SIGTERM`/`SIGINT` and turns them into the same
+//! graceful stop as the `shutdown` method.
 //!
 //! Trust model: the socket is created with `0600` permissions and the
 //! daemon refuses to bind over a socket that is currently being served.
@@ -96,9 +101,75 @@ pub const ENV_TOOLS_SOCKET: &str = "BH_RTD_TOOLS_SOCKET";
 /// Default bounded pool size.
 pub const DEFAULT_MAX_THREADS: usize = 16;
 
+/// One entry of the daemon's tool catalog — what `tools/list` reports about
+/// a wired tool (Phase 4: native RAP tools carry `native: true` and stay
+/// off the MCP proxy; the rest report their proxy transport honestly).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolCatalogEntry {
+    /// Dotted tool identifier (e.g. `file`, `shell.execute`,
+    /// `code.operations`).
+    pub name: String,
+    /// True when the tool executes natively in Rust (Phase 4's
+    /// `file` / `shell.execute` / `search.web`).
+    pub native: bool,
+    /// Human-readable transport: `"native-rust"` (in-process engine) or
+    /// `"mcp-proxy-python"` (`bh-mcp-bridge` → `src/agent_tools/
+    /// uds_server.py`).
+    pub transport: String,
+    /// Tool category, as the Python tool declares.
+    pub category: String,
+    /// Minimum autonomy level (0-4).
+    pub autonomy_level: u8,
+    /// Human-readable description (the Python tool's docstring).
+    pub description: String,
+    /// JSON Schema of accepted args.
+    pub input_schema: Value,
+    /// JSON Schema of the returned payload.
+    pub output_schema: Value,
+}
+
+impl ToolCatalogEntry {
+    /// The wire form served by `tools/list`.
+    pub fn to_json(&self) -> Value {
+        json!({
+            "name": self.name,
+            "native": self.native,
+            "transport": self.transport,
+            "category": self.category,
+            "autonomy_level": self.autonomy_level,
+            "description": self.description,
+            "input_schema": self.input_schema,
+            "output_schema": self.output_schema,
+        })
+    }
+}
+
+/// The outcome of a routed direct `tools/call`.
+#[derive(Clone, Debug, PartialEq)]
+pub enum DirectToolOutcome {
+    /// The tool executed (natively or through the proxy) and returned its
+    /// payload — business failures stay inside the payload, mirroring the
+    /// Python registry's contract.
+    Executed(Value),
+    /// No wired tool answers to this name (the router does not handle it).
+    NotFound,
+}
+
+/// A direct tool-call router for the daemon's `tools/call` method: routes
+/// one `{name, args}` call through the same engines the wired tool surface
+/// uses (native [`crate::rap_tools::NativeToolServer`] for the Phase 4
+/// tools, the `bh-mcp-bridge` proxy client for the rest). Built by the
+/// `bh-rtd` binary; the daemon itself only needs this trait (the lib
+/// cannot depend on `bh-mcp-bridge` without a dependency cycle).
+pub trait DirectToolRouter: Send + Sync {
+    /// Route one direct call. `Err` is a bridge-level failure (e.g. the
+    /// proxy peer is unreachable) — reported as `ok: false`, never masked.
+    fn route(&self, name: &str, args: &Value) -> Result<DirectToolOutcome, String>;
+}
+
 /// Daemon configuration (the `bh-rtd` binary maps env vars onto this;
 /// tests construct it directly).
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DaemonConfig {
     /// UDS path to listen on.
     pub socket_path: PathBuf,
@@ -113,11 +184,38 @@ pub struct DaemonConfig {
     /// BH tools peer socket, if tools are wired (health descriptor only;
     /// the tool objects themselves are passed to [`run_daemon`]).
     pub tools_socket: Option<PathBuf>,
+    /// The tool catalog reported by `tools/list` (built by the binary from
+    /// its actual tool-surface composition; empty when no tools are wired).
+    pub tool_catalog: Vec<ToolCatalogEntry>,
+    /// The direct `tools/call` router (built by the binary; `None` when no
+    /// tools are wired — direct calls then report every tool as not found).
+    pub direct_tools: Option<Arc<dyn DirectToolRouter>>,
     /// Cooperative stop flag: set by the `shutdown` method, the binary's
     /// `SIGTERM`/`SIGINT` handler, or any test/embedding that wants a
     /// graceful stop. One flag drives the accept loop, the timer ticker and
     /// (transitively) the host shutdown.
     pub stop: Arc<AtomicBool>,
+}
+
+impl core::fmt::Debug for DaemonConfig {
+    /// Manual impl: the router is a trait object (not `Debug`); the rest
+    /// debug-prints verbatim.
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("DaemonConfig")
+            .field("socket_path", &self.socket_path)
+            .field("state_dir", &self.state_dir)
+            .field("max_threads", &self.max_threads)
+            .field("brain_socket", &self.brain_socket)
+            .field("brain_model", &self.brain_model)
+            .field("tools_socket", &self.tools_socket)
+            .field("tool_catalog", &self.tool_catalog)
+            .field(
+                "direct_tools",
+                &self.direct_tools.as_ref().map(|_| "<router>"),
+            )
+            .field("stop", &self.stop)
+            .finish()
+    }
 }
 
 /// Errors from [`run_daemon`]. All fatal, all reported (no silent exit).
@@ -209,6 +307,10 @@ pub struct DaemonState {
     tools: String,
     /// Configured pool limit (for `health`).
     max_threads: usize,
+    /// The tool catalog served by `tools/list` (empty when no tools).
+    tool_catalog: Vec<ToolCatalogEntry>,
+    /// The direct `tools/call` router (`None` when no tools are wired).
+    direct_tools: Option<Arc<dyn DirectToolRouter>>,
 }
 
 impl DaemonState {
@@ -236,7 +338,21 @@ impl DaemonState {
             brain,
             tools,
             max_threads,
+            tool_catalog: Vec::new(),
+            direct_tools: None,
         }
+    }
+
+    /// Attach the tool catalog and the direct `tools/call` router (the
+    /// binary composes both from its actual tool surface).
+    pub fn with_tools(
+        mut self,
+        tool_catalog: Vec<ToolCatalogEntry>,
+        direct_tools: Option<Arc<dyn DirectToolRouter>>,
+    ) -> Self {
+        self.tool_catalog = tool_catalog;
+        self.direct_tools = direct_tools;
+        self
     }
 }
 
@@ -317,7 +433,8 @@ pub fn run_daemon(config: DaemonConfig, tools: Vec<DaemonToolBox>) -> Result<(),
         tools_desc,
         config.max_threads,
         Arc::clone(&config.stop),
-    ));
+    )
+    .with_tools(config.tool_catalog.clone(), config.direct_tools.clone()));
 
     let listener = bind_socket(&config.socket_path)?;
     listener
@@ -503,6 +620,8 @@ pub fn dispatch(
         "send_event" => send_event(host, params, id),
         "shutdown_thread" => shutdown_thread(host, params, id),
         "list_threads" => list_threads(host, id),
+        "tools/list" => tools_list(state, id),
+        "tools/call" => tools_call(state, params, id),
         "schedule_timer" => schedule_timer(wheel, params, id),
         "cancel_timer" => cancel_timer(wheel, params, id),
         "list_timers" => list_timers(wheel, id),
@@ -511,6 +630,67 @@ pub fn dispatch(
             ok_envelope(id, json!({"status": "shutting_down"}))
         }
         other => error_envelope(id, CODE_UNKNOWN_METHOD, format!("unknown method {other:?}")),
+    }
+}
+
+/// `tools/list` — the wired tool catalog (Phase 4: native RAP tools carry
+/// `native: true`).
+fn tools_list(state: &DaemonState, id: Value) -> Value {
+    let tools: Vec<Value> = state
+        .tool_catalog
+        .iter()
+        .map(ToolCatalogEntry::to_json)
+        .collect();
+    let count = tools.len();
+    ok_envelope(id, json!({"tools": tools, "count": count}))
+}
+
+/// `tools/call` — one direct tool call routed through the same engines the
+/// wired tool surface uses. Mirrors `src/agent_tools/uds_server.py`'s
+/// contract: business outcomes (including `success: false`) travel as
+/// `ok: true` with the payload; a missing router or tool name is the
+/// registry's not-found business failure; a bridge-level routing failure
+/// is `ok: false` internal.
+fn tools_call(state: &DaemonState, params: Value, id: Value) -> Value {
+    let Some(name) = params
+        .get("name")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+    else {
+        return error_envelope(
+            id,
+            CODE_INVALID_REQUEST,
+            "tools/call requires non-empty string 'name'".into(),
+        );
+    };
+    let args = params.get("args").cloned().unwrap_or_else(|| json!({}));
+    let Some(router) = state.direct_tools.as_ref() else {
+        return ok_envelope(
+            id,
+            json!({
+                "success": false,
+                "error": format!("Tool not found: {name}"),
+                "error_code": CODE_UNKNOWN_METHOD,
+            }),
+        );
+    };
+    match router.route(&name, &args) {
+        Ok(DirectToolOutcome::Executed(result)) => ok_envelope(id, result),
+        Ok(DirectToolOutcome::NotFound) => ok_envelope(
+            id,
+            json!({
+                "success": false,
+                "error": format!("Tool not found: {name}"),
+                "error_code": CODE_UNKNOWN_METHOD,
+            }),
+        ),
+        Err(message) => error_envelope(
+            id,
+            CODE_INTERNAL_ERROR,
+            format!("tools/call failed: {message}"),
+        ),
     }
 }
 

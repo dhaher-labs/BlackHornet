@@ -147,6 +147,40 @@ persist into BH MemoryFederation" — is complete:
 - **Tests** — `bh-rtd/tests/memory.rs` (11, hermetic mock peer — the wire
   contract reference), `bh-rtd/tests/memory_e2e.rs` (2, real Python peer).
 
+## Phase 4 status (native RAP tools are live)
+
+Phase 4 deliverable — "shell/file/search as native Rust RAP tool servers
+(NOT docker/browser). Exit criteria: those tools bypass the MCP proxy;
+the rest keep the proxy" — is complete:
+
+- **`crates/bh-rtd/src/rap_tools/`** (feature `bridge`; `native_tool`
+  behind `infinity`) — the three native engines, each a mirror of its
+  Python tool (`src/agent_tools/shell.py`, `file_tool.py`, `search.py`):
+  same allow/deny policy (`BLOCKED_COMMANDS` 1:1, sandbox traversal
+  refusal — including the symlinked-parent escape where the leaf does not
+  exist yet), same result shapes and error messages, same limits. The
+  Infinity completion-round surface is `native_tool::NativeTool`
+  (`supports_sync` = true — an in-process engine call, no socket).
+  Documented deltas: the native `code` search refuses regex mode loudly
+  (no std regex engine — never approximated); the native `patch` applies
+  real unified-diff hunks (the peer's context-dropping slice replacement
+  destroys content whenever a hunk carries context lines — a bug, not a
+  contract); `search.web`'s web action is refused, not fabricated.
+- **Daemon surface** — `tools/list` reports the wired catalog with honest
+  transport flags (`native-rust` vs `mcp-proxy-python`); `tools/call`
+  routes native names in-process (workspace-sandboxed via
+  `BH_RTD_WORKSPACE_ROOT`, default the daemon cwd) and every non-native
+  name through the `bh-mcp-bridge` proxy pass-through (business failures
+  stay inside the payload, `success: false` is never laundered into a
+  bridge error). Native names NEVER ride the proxy — the Phase 4 exit
+  criterion — and with no `BH_RTD_TOOLS_SOCKET` wired the daemon still
+  serves the three native tools alone.
+- **Tests** — inline engine units (`file`/`shell`/`search`/`native_tool`
+  modules), plus a real-daemon integration test
+  (`tests/daemon.rs::native_rap_tools_serve_tools_list_and_direct_calls`):
+  real binary, real UDS — write/read inside the sandbox, blocked-shell
+  policy hit (`exit_code: -2`), proxy-less not-found (`-32601`).
+
 ## Peer status (honest)
 
 | Peer | Status |
@@ -155,13 +189,12 @@ persist into BH MemoryFederation" — is complete:
 | `src/agent_tools/uds_server.py` (tools: `health`/`tools/list`/`tools/call`) | SHIPPED (Phase 1, commit 8aaba5b; wraps the real `ToolRegistry`, `0600` socket) |
 | `src/memory/rtd_memory_server.py` (memory: `health`/`conversation.*`/`state.*`/`federation.*`/`memory.episodes`) | SHIPPED (Phase 3, Task 19-b; wraps the real `SessionMemory`/`MemorySystem`/`MemoryFederation`, `0600` socket) |
 
-## What is NOT here yet (Phases 2-5 of PLAN.md §4)
+## What is NOT here yet (remainder of PLAN.md §4)
 
 | Phase | Missing deliverable |
 |---|---|
 | 0 (rest) | `src/bridge/infinity/` RAP round-trip (the adapter contract doc landed in Phase 2: `docs/02-arch/infinity-adapter-contract.md`) |
 | 3 (rest) | ChromaDB read-through (documented post-MVP in `src/memory/rtd_memory_server.py` + `bh_rtd::memory` docstrings — not faked) |
-| 4 | native Rust RAP tool servers (shell/file/search) |
 | 5 | watchdog/heartbeat via `sleep_until_event_or_input`; UI integration |
 
 The trading money-path is excluded from migration until Phase 5+

@@ -131,6 +131,7 @@ dependencies = [
  "futures-util",
  "infinity-agent-core",
  "infinity-provider-protocol",
+ "rap-protocol",
  "serde_json",
  "tokio",
 ]
