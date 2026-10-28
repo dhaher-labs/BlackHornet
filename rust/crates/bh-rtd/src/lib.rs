@@ -51,6 +51,16 @@
 //!   cooldowns as provider error classes, no provider logic re-implemented
 //!   in Rust. The daemon wires it as its brain when `BH_RTD_BRAIN_SOCKET`
 //!   is set.
+//! * `memory` (feature `bridge`) — the Phase 3 **memory seam**:
+//!   Infinity-shaped [`memory::ConversationStore`] /
+//!   [`memory::StateStore`] / [`memory::SharedMemoryStore`] contracts
+//!   (bh-rtd-owned, zero Infinity types — R10) implemented by
+//!   [`memory::UdsMemoryClient`] against the Python peer
+//!   `src/memory/rtd_memory_server.py`, which wraps the existing
+//!   `src/memory/` stack (SessionMemory SQLite, MemorySystem LTM
+//!   SQLite+FTS5, MemoryFederation, episodic memory). Hibernating agents
+//!   persist their state + conversation into BH memory and read it back —
+//!   never touching SQLite from Rust.
 //!
 //! The MCP side of Phase 1 is the sibling crate `bh-mcp-bridge` (BH tool
 //! catalog + tools client + Infinity `Tool` impl over `src/agent_tools/`);
@@ -68,6 +78,9 @@ pub mod host;
 
 #[cfg(feature = "bridge")]
 pub mod timers;
+
+#[cfg(feature = "bridge")]
+pub mod memory;
 
 #[cfg(feature = "bridge")]
 pub use bh_bridge_uds as uds;
