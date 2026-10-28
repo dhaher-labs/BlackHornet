@@ -3,7 +3,11 @@
 # See rust/README.md for scope; PLAN.md §4 for the full strangler-fig roadmap.
 [workspace]
 resolver = "2"
-members = ["crates/bh-rtd", "crates/bh-mcp-bridge"]
+members = [
+  "crates/bh-rtd",
+  "crates/bh-mcp-bridge",
+  "crates/bh-bridge-uds",
+]
 
 [workspace.package]
 edition = "2024"
@@ -34,8 +38,12 @@ serde_json = { version = "1" }
 futures-util = { version = "0.3" }
 async-trait = { version = "0.1" }
 
-# Local crates (so bh-mcp-bridge can share the BH bridge protocol client).
+# Local crates. bh-bridge-uds is the shared protocol transport; bh-mcp-bridge
+# depends on it (not on bh-rtd) so the Phase 2 daemon binary can depend on
+# bh-mcp-bridge from inside the bh-rtd package without a dependency cycle.
 bh-rtd = { path = "crates/bh-rtd" }
+bh-mcp-bridge = { path = "crates/bh-mcp-bridge" }
+bh-bridge-uds = { path = "crates/bh-bridge-uds" }
 
 [profile.release]
 # Small-binary release profile for the future bh-rtd daemon (Phase 2).

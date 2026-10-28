@@ -1,0 +1,11 @@
+[package]
+name = "bh-bridge-uds"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "BlackHornet BH bridge protocol v1 transport — one JSON value per line over a Unix domain socket, one request per connection. Shared (std-only) client used by bh-rtd and bh-mcp-bridge; bh-rtd re-exports it as `bh_rtd::uds`."
+
+[dependencies]
+serde_json = { workspace = true }

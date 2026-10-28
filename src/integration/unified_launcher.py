@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 import time
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +16,7 @@ class UnifiedLauncher:
     - Graph system (src/graph/)
     - Memory system (src/memory/)
     - Ecosystem orchestrator (src/colony/orchestrator.py, own loop thread)
+    - Rust RTD daemon (src/integration/rtd_launcher.py, BH_RUNTIME=rust only)
     - Event bus bridging (src/integration/event_hub.py)
     - Provider hub (src/integration/provider_hub.py)
     - Graph tracker (src/integration/graph_tracker.py)
@@ -95,6 +95,18 @@ class UnifiedLauncher:
             results["ecosystem"] = "ok"
         except Exception as exc:
             results["ecosystem"] = str(exc)
+
+        # 6b. Rust RTD daemon (Phase 2: only when BH_RUNTIME=rust; fail-loud).
+        # flavor=python keeps boot byte-identical to before (one debug line).
+        from src.integration.rtd_launcher import RtdLauncher, read_runtime_flavor
+        if read_runtime_flavor() == "rust":
+            rtd = RtdLauncher()
+            rtd.start()  # raises on failure — no fake success at boot
+            self._components["rtd"] = rtd
+            started.append("rtd")
+            results["rtd"] = "ok"
+        else:
+            logger.debug("unified_launcher_rtd flavor=python state=disabled")
 
         # 7. API bridge
         try:
@@ -205,6 +217,11 @@ class UnifiedLauncher:
                 self._components["ecosystem"].stop()
             except Exception as exc:
                 logger.warning("ecosystem_runner_stop_error err=%s", exc)
+        if "rtd" in self._components:
+            try:
+                self._components["rtd"].shutdown()
+            except Exception as exc:
+                logger.warning("rtd_shutdown_error err=%s", exc)
         if "event_bus" in self._components:
             self._components["event_bus"].clear_history()
         self._running = False

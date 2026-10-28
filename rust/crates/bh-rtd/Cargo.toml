@@ -5,31 +5,65 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges (AgentHost contract, BH_RUNTIME gate, feature-gated infinity adapter, JeumpaProvider, BH UDS bridge protocol)."
+description = "BlackHornet Rust runtime daemon — Phase 0 scaffold + Phase 1 bridges + Phase 2 runtime wedge (AgentHost contract, BH_RUNTIME gate, InfinityHost, durable timers, JeumpaProvider, BH UDS bridge protocol, `bh-rtd` daemon binary)."
 
 [features]
 # Default ON: the plain `cargo build` / `cargo test` path exercises the real
-# infinity-agent-core 0.2.0 dependency. `--no-default-features` gives a
-# hermetic std-only build (used by the Phase 0 quality gate and by
-# network-less environments).
-default = ["infinity"]
-# `bridge`: the BH bridge protocol v1 transport (UDS JSON-lines client) used
-# by the Phase 1 bridges (JeumpaProvider, bh-mcp-bridge). std + serde_json.
-bridge = ["dep:serde_json"]
-# `infinity`: the Infinity integration (adapter stub + Phase 1
-# JeumpaProvider). Implies `bridge` — JeumpaProvider speaks the UDS protocol.
-infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol", "dep:futures-util", "dep:async-trait", "bridge"]
+# infinity-agent-core 0.2.0 dependency AND the full Phase 2 daemon binary
+# (tools wired via bh-mcp-bridge). `--no-default-features` gives a hermetic
+# std-only build (used by the Phase 0 quality gate and by network-less
+# environments; the daemon binary and infinity-gated tests are excluded).
+default = ["infinity", "tools"]
+# `bridge`: the BH bridge protocol v1 transport (UDS JSON-lines). The client
+# lives in the sibling `bh-bridge-uds` crate (std + serde_json) and is
+# re-exported here as `bh_rtd::uds` — the protocol is shared with
+# `bh-mcp-bridge`, which depends on `bh-bridge-uds` directly (doing it any
+# other way would make `bh-rtd -> bh-mcp-bridge -> bh-rtd` a forbidden
+# dependency cycle).
+bridge = ["dep:bh-bridge-uds", "dep:serde_json"]
+# `infinity`: the Infinity integration (adapter + Phase 1 JeumpaProvider +
+# Phase 2 InfinityHost/daemon). Implies `bridge` — JeumpaProvider and the
+# daemon speak the UDS protocol — and pulls tokio for the runtime actor.
+infinity = ["dep:infinity-agent-core", "dep:infinity-provider-protocol", "dep:futures-util", "dep:async-trait", "dep:tokio", "bridge"]
+# `tools`: the `bh-rtd` binary wires BH tools (executed Python-side by
+# `src/agent_tools/uds_server.py`) into the Infinity tool surface via the
+# `bh-mcp-bridge` crate's `Tool` implementation (`BH_RTD_TOOLS_SOCKET`).
+tools = ["infinity", "dep:bh-mcp-bridge"]
 
 [dependencies]
+# Shared BH bridge protocol v1 transport (re-exported as `bh_rtd::uds`).
+bh-bridge-uds = { workspace = true, optional = true }
+# BH tools bridge for the daemon binary (`tools` feature only; the library
+# itself never links it — tool objects cross the API as
+# `infinity_agent_core::tools::Tool` trait objects).
+bh-mcp-bridge = { workspace = true, optional = true }
 infinity-agent-core = { workspace = true, optional = true }
 infinity-provider-protocol = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
+# Phase 2 runtime-actor executor (current-thread runtime + LocalSet) and the
+# command channel between the public AgentHost methods and the actor thread.
+# `macros` backs the per-thread event-drain `tokio::select!`; `time` backs
+# the actor runtime's `enable_all()` clock; `signal` backs the daemon
+# binary's SIGTERM/SIGINT graceful-stop handler. tokio is ALREADY in the
+# dependency tree via infinity-agent-core — this only makes the edge direct
+# (no new package in Cargo.lock).
+tokio = { version = "1", features = ["rt", "sync", "macros", "time", "signal"], optional = true }
 
-# NOTE: no tokio *dependency*. The verified Infinity trait API is async
-# (`#[async_trait]`), so the adapter exposes async methods, but Phase 0 ships
-# no executor: the smoke tests bring their own via a dev-dependency only.
+# NOTE: no tokio *mandatory dependency*. The verified Infinity trait API is
+# async (`#[async_trait]`), so the adapter exposes async methods, but the
+# non-infinity build still ships no executor: the smoke tests bring their own
+# via a dev-dependency only.
+
+# The Phase 2 daemon binary. `required-features` keeps the hermetic
+# std-only build lib-only (no binary, no executor). The binary name is
+# `bh-rtd`: the Python `RtdLauncher` (src/integration/rtd_launcher.py)
+# resolves `rust/target/release/bh-rtd` by default (or via `BH_RTD_BIN`).
+[[bin]]
+name = "bh-rtd"
+path = "src/bin/bh-rtd.rs"
+required-features = ["infinity"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }

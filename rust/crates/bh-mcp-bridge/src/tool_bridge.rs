@@ -186,7 +186,7 @@ mod tests {
     use super::*;
     use async_trait::async_trait as at;
     use std::io::{BufRead, BufReader, Write};
-    use std::os::unix::net::{UnixListener, UnixStream};
+    use std::os::unix::net::UnixListener;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
     use std::sync::{Arc, Mutex};

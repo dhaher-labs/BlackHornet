@@ -24,9 +24,10 @@
 //!   synchronously over the bridge client and the result is injected into
 //!   the completion loop.
 //!
-//! All of it travels over the BH bridge protocol v1 (see `bh_rtd::uds`):
-//! one JSON value per `\n`-terminated line over a Unix domain socket, one
-//! request per connection.
+//! All of it travels over the BH bridge protocol v1 (see `bh_bridge_uds`,
+//! re-exported by `bh-rtd` as `bh_rtd::uds`): one JSON value per
+//! `\n`-terminated line over a Unix domain socket, one request per
+//! connection.
 //!
 //! ## Peer status (honest)
 //!
@@ -58,7 +59,7 @@
 
 use std::path::{Path, PathBuf};
 
-use bh_rtd::uds::{UdsClient, UdsError};
+use bh_bridge_uds::{UdsClient, UdsError};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 

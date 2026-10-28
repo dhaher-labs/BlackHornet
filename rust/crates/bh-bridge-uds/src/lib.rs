@@ -4,6 +4,12 @@
 //! deliverables (PLAN.md §4): the Rust side never re-implements a Python
 //! subsystem, it calls it over this socket protocol.
 //!
+//! The transport lives in its own tiny crate (std + `serde_json` only) so
+//! both `bh-rtd` and `bh-mcp-bridge` can depend on it without creating a
+//! dependency cycle: `bh-rtd` re-exports it as `bh_rtd::uds`, and the Phase 2
+//! daemon binary needs `bh-mcp-bridge` on the opposite edge (tool assembly),
+//! which cargo forbids if both crates went through `bh-rtd`.
+//!
 //! ## Wire format (protocol v1)
 //!
 //! * UTF-8 JSON, exactly one JSON value per `\n`-terminated line.
@@ -31,15 +37,16 @@
 //! travel as `ok: true` with the failure expressed inside `result` — see the
 //! individual bridges.
 //!
-//! Peers shipped / planned for Phase 1 (Python side, additive files only):
+//! Peers (Python side, additive files only):
 //!
 //! * `src/colony/jeumpa_uds_server.py` — SHIPPED. Methods `health`,
 //!   `models`, `complete` (wraps `JeumpaBrain`).
-//! * `src/agent_tools/uds_server.py` — PLANNED, NOT YET WRITTEN (Phase 1's
-//!   own rule: the bridge comes before the BH MCP servers). It must serve
-//!   `health`, `tools/list`, `tools/call` (wrapping the `ToolRegistry`);
-//!   the exact contract is pinned by the `bh-mcp-bridge` client and its
-//!   tests.
+//! * `src/agent_tools/uds_server.py` — SHIPPED (Phase 1, wrapping the
+//!   `ToolRegistry`). Serves `health`, `tools/list`, `tools/call`; the
+//!   exact contract is pinned by the `bh-mcp-bridge` client and its tests
+//!   (`catalog::validate_peer_manifest` guards manifest drift).
+//! * `bh-rtd` itself — SHIPPED (Phase 2). The daemon serves the same
+//!   envelope server-side; see `bh_rtd::daemon` for its method table.
 //!
 //! Trust model: a Unix domain socket is filesystem-permission gated and
 //! local-only; any local process that can reach the socket may call these
@@ -81,7 +88,7 @@ pub enum UdsError {
     Protocol(String),
     /// The peer answered `ok: false` with a structured error.
     Server {
-        /// Machine-readable error code (see the [`crate::uds`] code constants).
+        /// Machine-readable error code (see the code constants above).
         code: i64,
         /// Human-readable message from the server.
         message: String,

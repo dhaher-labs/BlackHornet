@@ -78,6 +78,15 @@ pub enum HostError {
     UnknownAgent(String),
     /// The host is shutting down or already shut down.
     Shutdown(String),
+    /// The bounded sub-agent pool is full (Phase 2: `max_threads` reached).
+    Capacity {
+        /// The configured pool limit that was exceeded.
+        limit: usize,
+    },
+    /// A member agent with this colony name already exists in the host.
+    DuplicateAgent(String),
+    /// The host backend could not start (configuration, provider, runtime).
+    Startup(String),
 }
 
 impl core::fmt::Display for HostError {
@@ -86,6 +95,13 @@ impl core::fmt::Display for HostError {
             HostError::Unsupported(why) => write!(f, "unsupported operation: {why}"),
             HostError::UnknownAgent(id) => write!(f, "unknown agent id {id:?}"),
             HostError::Shutdown(why) => write!(f, "host shutdown: {why}"),
+            HostError::Capacity { limit } => {
+                write!(f, "host at capacity: bounded pool limit {limit} reached")
+            }
+            HostError::DuplicateAgent(name) => {
+                write!(f, "agent name already in use: {name:?}")
+            }
+            HostError::Startup(reason) => write!(f, "host failed to start: {reason}"),
         }
     }
 }

@@ -24,8 +24,11 @@ infinity = [
 ]
 
 [dependencies]
-# Shared BH bridge protocol v1 transport (std-only).
-bh-rtd = { workspace = true, default-features = false, features = ["bridge"] }
+# Shared BH bridge protocol v1 transport (std-only). This is its own crate
+# (NOT a bh-rtd dependency) so the Phase 2 `bh-rtd` daemon binary can depend
+# on bh-mcp-bridge for tool assembly without a bh-rtd -> bh-mcp-bridge ->
+# bh-rtd cycle. bh-rtd re-exports the same crate as `bh_rtd::uds`.
+bh-bridge-uds = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

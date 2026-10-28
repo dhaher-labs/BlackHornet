@@ -39,3 +39,13 @@ jobs:
           python-version: "3.11"
       - run: pip install -e ".[dev]" mypy
       - run: mypy src/ --ignore-missing-imports --no-strict-optional
+
+  rust-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cd rust && cargo build --no-default-features && cargo test --no-default-features && cargo build && cargo test

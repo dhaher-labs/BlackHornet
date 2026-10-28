@@ -273,8 +273,8 @@ fn completion_to_params(
             Message::User { content } => {
                 let text = content
                     .iter()
-                    .filter_map(|block| match block {
-                        UserContent::Text(t) => Some(t.text.clone()),
+                    .map(|block| match block {
+                        UserContent::Text(t) => t.text.clone(),
                         // Tool results are the model's only view of what a
                         // tool returned: forward their text content
                         // losslessly (multi-block results join with
@@ -283,20 +283,20 @@ fn completion_to_params(
                             let parts: Vec<String> = r
                                 .content
                                 .iter()
-                                .filter_map(|c| match c {
-                                    ToolResultContent::Text(t) => Some(t.text.clone()),
+                                .map(|c| match c {
+                                    ToolResultContent::Text(t) => t.text.clone(),
                                     ToolResultContent::Image(_) => {
-                                        Some("[image tool result omitted]".to_string())
+                                        "[image tool result omitted]".to_string()
                                     }
                                 })
                                 .collect();
                             if parts.is_empty() {
-                                Some(format!("[tool result {} with no text content]", r.id))
+                                format!("[tool result {} with no text content]", r.id)
                             } else {
-                                Some(parts.join("\n"))
+                                parts.join("\n")
                             }
                         }
-                        UserContent::Image(_) => Some("[image content omitted]".to_string()),
+                        UserContent::Image(_) => "[image content omitted]".to_string(),
                     })
                     .collect::<Vec<_>>()
                     .join("\n");
