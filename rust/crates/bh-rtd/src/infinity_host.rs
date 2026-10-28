@@ -37,6 +37,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Instant;
 
 use infinity_agent_core::message::InputMessage;
 use infinity_agent_core::stores::{InMemoryConversationStore, InMemoryStateStore};
@@ -95,6 +96,12 @@ impl InfinityHostConfig {
     }
 }
 
+/// The passive Infinity tool whose invocation parks a thread: the agent
+/// loop ends its turn and the thread waits for new input by design. The
+/// host records it so the Phase 5 watchdog can exempt parked threads from
+/// stall detection (see [`crate::watchdog`]).
+pub const SLEEP_UNTIL_EVENT_OR_INPUT: &str = "sleep_until_event_or_input";
+
 /// One member agent's observable state (what `list_threads` reports).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ThreadStatInfo {
@@ -109,6 +116,16 @@ pub struct ThreadStatInfo {
     /// Name of the most recent event (`UserInput`, `TextChunk`,
     /// `CompletionFinished`, `Info`, ...).
     pub last_event: String,
+    /// Heartbeat age (Phase 5 watchdog): milliseconds since the last
+    /// event, floored at spawn time (a thread that never emitted is aged
+    /// from its spawn). Pure `u64` — computed on the actor thread so the
+    /// snapshot crosses threads as plain `Send` data.
+    pub last_event_age_ms: u64,
+    /// True when the thread's most recent tool call was the passive
+    /// [`SLEEP_UNTIL_EVENT_OR_INPUT`] tool (it is parked waiting for input
+    /// by design — the watchdog exempts it from stall detection). Sticky
+    /// across non-tool events; cleared by any other tool call.
+    pub parked: bool,
 }
 
 /// Successful outcome of one actor command.
@@ -294,6 +311,15 @@ struct ThreadEntry {
     role: String,
     events_seen: u64,
     last_event: String,
+    /// When the thread was spawned (the heartbeat age floor).
+    spawned_at: Instant,
+    /// Last event instant (`None` until the first event arrives; the
+    /// heartbeat age then falls back to `spawned_at`).
+    last_event_at: Option<Instant>,
+    /// Whether the most recent tool call was the passive
+    /// `sleep_until_event_or_input` tool (Phase 5 watchdog park flag;
+    /// sticky across non-tool events, cleared by any other tool call).
+    parked: bool,
     detach: watch::Sender<bool>,
 }
 
@@ -401,6 +427,9 @@ async fn spawn_one(
             role: spec.role,
             events_seen: 0,
             last_event: "none".into(),
+            spawned_at: Instant::now(),
+            last_event_at: None,
+            parked: false,
             detach: detach_tx,
         },
     );
@@ -476,12 +505,21 @@ fn collect_stats(threads: &SharedThreads) -> Vec<ThreadStatInfo> {
     let mut stats: Vec<ThreadStatInfo> = threads
         .borrow()
         .iter()
-        .map(|(thread_id, e)| ThreadStatInfo {
-            agent_id: e.agent_id.clone(),
-            thread_id: thread_id.to_string(),
-            role: e.role.clone(),
-            events_seen: e.events_seen,
-            last_event: e.last_event.clone(),
+        .map(|(thread_id, e)| {
+            // Heartbeat age: ms since the last event, floored at spawn
+            // time. Computed here (actor thread) so the snapshot stays
+            // plain `Send` data; `as_millis` saturates on u128 → u64 cast
+            // for any realistic uptime.
+            let age = e.last_event_at.unwrap_or(e.spawned_at).elapsed();
+            ThreadStatInfo {
+                agent_id: e.agent_id.clone(),
+                thread_id: thread_id.to_string(),
+                role: e.role.clone(),
+                events_seen: e.events_seen,
+                last_event: e.last_event.clone(),
+                last_event_age_ms: u64::try_from(age.as_millis()).unwrap_or(u64::MAX),
+                parked: e.parked,
+            }
         })
         .collect();
     stats.sort_by(|a, b| a.agent_id.cmp(&b.agent_id));
@@ -492,6 +530,18 @@ fn record_event(threads: &SharedThreads, thread_id: &ThreadId<str>, event: &Agen
     if let Some(entry) = threads.borrow_mut().get_mut(thread_id) {
         entry.events_seen += 1;
         entry.last_event = event_name(event).to_owned();
+        entry.last_event_at = Some(Instant::now());
+        // Phase 5 watchdog park flag: reflects the most recent TOOL CALL —
+        // the passive `sleep_until_event_or_input` call parks the thread
+        // (per that tool's contract the turn ends and the thread waits for
+        // input; the runtime then goes idle and respawns on the next
+        // message). Non-tool events (TextChunk, CompletionFinished, the
+        // waking UserInput, ...) leave the flag untouched — it is a fact
+        // about the last tool call, never a guess about the future; any
+        // OTHER tool call clears it.
+        if let AgentEvent::ToolCall { name, .. } = event {
+            entry.parked = name == SLEEP_UNTIL_EVENT_OR_INPUT;
+        }
     }
     // No entry => the agent was detached after the event was emitted; the
     // event is intentionally dropped (detach stops the event flow by

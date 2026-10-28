@@ -20,6 +20,7 @@
 //! | `BH_RTD_BRAIN_MODEL` | brain model id | `default` |
 //! | `BH_RTD_TOOLS_SOCKET` | BH tools UDS (`src/agent_tools/uds_server.py`), proxy leg | none → no proxy tools |
 //! | `BH_RTD_WORKSPACE_ROOT` | sandbox root for the native `file` / `search.web` tools | process cwd |
+//! | `BH_RTD_WATCHDOG_MS` | Phase 5 watchdog stall threshold (ms); a silent, unparked thread older than this reports `stalled` | `30000` |
 //!
 //! `SIGTERM`/`SIGINT` flip the same cooperative stop flag as the `shutdown`
 //! method, so every stop path passes through the daemon's clean shutdown
@@ -35,11 +36,12 @@ use std::sync::Arc;
 use bh_rtd::daemon::{
     DaemonConfig, DaemonError, DaemonToolBox, DirectToolOutcome, DirectToolRouter,
     ToolCatalogEntry, DEFAULT_MAX_THREADS, ENV_BRAIN_MODEL, ENV_BRAIN_SOCKET, ENV_MAX_THREADS,
-    ENV_SOCKET, ENV_STATE_DIR, ENV_TOOLS_SOCKET,
+    ENV_SOCKET, ENV_STATE_DIR, ENV_TOOLS_SOCKET, ENV_WATCHDOG_MS,
 };
 use bh_rtd::uds::UdsClient;
 use bh_rtd::rap_tools::{is_native_tool, native_tool::NativeTool, NativeToolError,
     NativeToolServer};
+use bh_rtd::watchdog::DEFAULT_STALL_MS;
 use serde_json::{json, Value};
 
 fn env_path(name: &str) -> Option<PathBuf> {
@@ -278,6 +280,20 @@ fn main() -> ExitCode {
     };
 
     let tools_socket = env_path(ENV_TOOLS_SOCKET);
+    let watchdog_stall_ms = match std::env::var(ENV_WATCHDOG_MS) {
+        Ok(raw) => match raw.trim().parse::<u64>() {
+            Ok(n) if n >= 1 => n,
+            Ok(_) => {
+                eprintln!("bh-rtd-daemon: fatal: {ENV_WATCHDOG_MS}=0 (must be >= 1)");
+                return ExitCode::FAILURE;
+            }
+            Err(e) => {
+                eprintln!("bh-rtd-daemon: fatal: {ENV_WATCHDOG_MS}={raw:?}: {e}");
+                return ExitCode::FAILURE;
+            }
+        },
+        Err(_) => DEFAULT_STALL_MS,
+    };
     let workspace_root = env_path(bh_rtd::rap_tools::ENV_WORKSPACE_ROOT)
         .unwrap_or_else(|| {
             std::env::current_dir().expect("current directory for the native tool sandbox")
@@ -306,6 +322,7 @@ fn main() -> ExitCode {
         tools_socket,
         tool_catalog,
         direct_tools,
+        watchdog_stall_ms,
         stop,
     };
 

@@ -181,6 +181,48 @@ the rest keep the proxy" — is complete:
   real binary, real UDS — write/read inside the sandbox, blocked-shell
   policy hit (`exit_code: -2`), proxy-less not-found (`-32601`).
 
+## Phase 5 status (M1 watchdog/heartbeat is live)
+
+Phase 5 milestone M1 — the PLAN §4 phrase "watchdog/heartbeat via
+`sleep_until_event_or_input` + subscriptions", first half — is complete:
+
+- **`crates/bh-rtd/src/watchdog.rs`** (feature `bridge`) — the pure
+  liveness classifier: `classify(age_ms, parked, threshold)` maps a
+  thread's heartbeat age to `active` / `parked` / `stalled` (age strictly
+  greater than the threshold stalls; parking always wins); `survey`
+  aggregates a snapshot into a `WatchdogReport` (counts + sorted
+  `stalled_agents`). Evaluated at query time only — pull, not poll: no
+  sweeper thread, no watchdog state that can itself go stale.
+- **Heartbeat source** — the host's event-flow: every `AgentEvent` a
+  thread emits refreshes `ThreadStatInfo::last_event_age_ms` (floored at
+  spawn time). The `sleep_until_event_or_input` idiom is honored
+  literally: the host records the *most recent tool call*, so a thread
+  whose last tool call was the passive sleep tool reports `parked: true`
+  and is exempt from stall detection. The flag is sticky across non-tool
+  events (the turn-ending `CompletionFinished` does not un-park it) and
+  cleared by any other tool call — a recorded fact, never a guess.
+  Runtime semantics verified against the published 0.2.0 sources and
+  e2e: the sleep tool is a no-op whose invocation ends the turn (one
+  provider round), the driver idles and respawns on the next input.
+- **Daemon surface (additive)** — `health` gains a `watchdog` object
+  (`stall_threshold_ms`, `active`, `parked`, `stalled`, `stalled_agents`);
+  `list_threads` entries gain `last_event_age_ms`, `parked`,
+  `watch_state`. No method signature changed; Python clients parse
+  specific fields and are untouched (`pytest` baseline identical).
+- **Config** — `BH_RTD_WATCHDOG_MS` (default `30000`, must be >= 1)
+  sets the stall threshold.
+- **Tests** — `tests/watchdog.rs` (7 pure classification/aggregation
+  tests), inline module tests (8), the host e2e
+  `tests/infinity_host.rs::sleep_tool_call_parks_thread_for_watchdog`
+  (real runtime: scripted sleep tool call parks the thread, a wake with
+  no tool call keeps the flag, a real non-sleep tool call clears it),
+  and `tests/daemon.rs` asserting the new `health`/`list_threads` fields
+  over a real UDS daemon.
+- **Remaining in Phase 5** — subscription-aware waking of parked agents,
+  `view_update` → `src/ui/server.py` integration, Python/Rust parity
+  checks (see the remainder table below). SAMAN/Omega stay Python per
+  PLAN §4.
+
 ## Peer status (honest)
 
 | Peer | Status |
@@ -195,7 +237,7 @@ the rest keep the proxy" — is complete:
 |---|---|
 | 0 (rest) | `src/bridge/infinity/` RAP round-trip (the adapter contract doc landed in Phase 2: `docs/02-arch/infinity-adapter-contract.md`) |
 | 3 (rest) | ChromaDB read-through (documented post-MVP in `src/memory/rtd_memory_server.py` + `bh_rtd::memory` docstrings — not faked) |
-| 5 | watchdog/heartbeat via `sleep_until_event_or_input`; UI integration |
+| 5 (rest) | subscription-aware waking of parked agents; `view_update` → `src/ui/server.py`; Python/Rust parity checks (watchdog M1 is live, see the Phase 5 status section) |
 
 The trading money-path is excluded from migration until Phase 5+
 (PLAN.md §4). SAMAN, swarm intelligence, Omega, vector/KG memory and the

@@ -61,6 +61,14 @@
 //!   SQLite+FTS5, MemoryFederation, episodic memory). Hibernating agents
 //!   persist their state + conversation into BH memory and read it back —
 //!   never touching SQLite from Rust.
+//! * `watchdog` (feature `bridge`) — the Phase 5 **watchdog/heartbeat**
+//!   (milestone M1): per-thread liveness classification (`active` /
+//!   `parked` / `stalled`) from the host's event-flow heartbeat, honoring
+//!   the `sleep_until_event_or_input` idiom — a thread whose most recent
+//!   tool call was that passive tool is parked by design and exempt from
+//!   stall detection. Surfaced additively on the daemon's `health` (`watchdog`
+//!   object) and `list_threads` (`last_event_age_ms` / `parked` /
+//!   `watch_state`); pure pull-based evaluation, no sweeper thread.
 //! * `rap_tools` (feature `bridge`; `native_tool` behind `infinity`) — the
 //!   Phase 4 **native RAP tools**: `file` / `shell.execute` / `search.web`
 //!   executed by native Rust tool servers (mirrors of
@@ -92,6 +100,9 @@ pub mod memory;
 
 #[cfg(feature = "bridge")]
 pub mod rap_tools;
+
+#[cfg(feature = "bridge")]
+pub mod watchdog;
 
 #[cfg(feature = "bridge")]
 pub use bh_bridge_uds as uds;

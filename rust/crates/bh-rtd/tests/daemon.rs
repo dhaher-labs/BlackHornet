@@ -196,6 +196,20 @@ fn full_lifecycle_over_real_uds() {
     assert_eq!(health.get("brain").and_then(Value::as_str), Some("none"));
     assert_eq!(health.get("threads").and_then(Value::as_i64), Some(0));
     assert_eq!(health.get("max_threads").and_then(Value::as_i64), Some(16));
+    // Phase 5 watchdog object: additive, honest zero-state at startup.
+    let watchdog = health.get("watchdog").expect("watchdog object in health");
+    assert_eq!(
+        watchdog.get("stall_threshold_ms").and_then(Value::as_u64),
+        Some(30_000),
+        "default threshold"
+    );
+    assert_eq!(watchdog.get("active").and_then(Value::as_u64), Some(0));
+    assert_eq!(watchdog.get("parked").and_then(Value::as_u64), Some(0));
+    assert_eq!(watchdog.get("stalled").and_then(Value::as_u64), Some(0));
+    assert_eq!(
+        watchdog.get("stalled_agents").and_then(Value::as_array).map(Vec::len),
+        Some(0)
+    );
 
     // spawn_thread: accepted, ids reported.
     let spawned = expect_accepted(
@@ -229,6 +243,14 @@ fn full_lifecycle_over_real_uds() {
     assert_eq!(threads[0].get("agent_id").and_then(Value::as_str), Some("worker-1"));
     assert_eq!(threads[0].get("role").and_then(Value::as_str), Some("analyst"));
     assert_eq!(threads[0].get("events_seen").and_then(Value::as_i64), Some(0));
+    // Phase 5 watchdog facts (additive on list_threads entries).
+    assert!(threads[0].get("last_event_age_ms").and_then(Value::as_u64).is_some());
+    assert_eq!(threads[0].get("parked").and_then(Value::as_bool), Some(false));
+    assert_eq!(
+        threads[0].get("watch_state").and_then(Value::as_str),
+        Some("active"),
+        "fresh thread under the default threshold is active"
+    );
 
     // send_event reaches the thread (Custom payload is the thread input).
     expect_accepted(

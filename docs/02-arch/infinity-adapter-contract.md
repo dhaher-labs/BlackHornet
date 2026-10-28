@@ -38,11 +38,11 @@ re-exported as `bh_rtd::uds`); Python one-shot client inside
 
 | method | params | result |
 |---|---|---|
-| `health` | — | `{status, service, protocol, runtime, version, brain, tools, threads, max_threads, timers_pending}` |
+| `health` | — | `{status, service, protocol, runtime, version, brain, tools, threads, max_threads, timers_pending, watchdog: {stall_threshold_ms, active, parked, stalled, stalled_agents}}` — Phase 5 M1: the `watchdog` object is additive |
 | `spawn_thread` | `name` (required, non-empty), `role?` (default `"worker"`), `instructions?` | `{accepted, agent_id, thread_id}` |
 | `send_event` | `agent_id` (required), `kind?` (`task_assigned`\|`message_received`\|`health_tick`\|`custom`), `payload?` | `{accepted}` |
 | `shutdown_thread` | `agent_id` (required) | `{accepted, thread_id}` — detaches the host from the thread (events stop; the Infinity thread idles out, history stays in the store: hibernation semantics) |
-| `list_threads` | — | `{threads: [{agent_id, thread_id, role, events_seen, last_event}]}` |
+| `list_threads` | — | `{threads: [{agent_id, thread_id, role, events_seen, last_event, last_event_age_ms, parked, watch_state}]}` — Phase 5 M1: `last_event_age_ms` / `parked` / `watch_state` (`active\|parked\|stalled`) are additive watchdog fields |
 | `schedule_timer` | `delay_ms` (required, > 0), `agent_id?`, `payload?` | `{accepted, timer_id}` |
 | `cancel_timer` | `timer_id` (required) | `{accepted}` |
 | `list_timers` | — | `{timers: [TimerRecord JSON]}` (shape below) |
@@ -51,6 +51,27 @@ re-exported as `bh_rtd::uds`); Python one-shot client inside
 `spawn_thread` at pool capacity (`BH_RTD_MAX_THREADS`) is a **loud business
 refusal** (`accepted: false`), never a queue and never a silent local
 fallback.
+
+### Watchdog liveness (Phase 5 M1, additive)
+
+`health.watchdog` and the per-thread `watch_state` classify each tracked
+thread from its event-flow heartbeat (`last_event_age_ms`, floored at
+spawn time):
+
+* `active` — events flowing, or age ≤ `stall_threshold_ms`;
+* `parked` — the thread's most recent tool call was the passive
+  `sleep_until_event_or_input` tool (the runtime's own "hibernate until
+  input" idiom): exempt from stall detection by design. The flag is a
+  recorded fact about the most recent tool call — sticky across non-tool
+  events (the turn-ending `CompletionFinished` does not un-park it),
+  cleared by any other tool call;
+* `stalled` — not parked and silent for strictly longer than
+  `stall_threshold_ms`; the thread's colony names are listed (sorted) in
+  `health.watchdog.stalled_agents`.
+
+Classification is evaluated at query time (pure pull) — no sweeper thread.
+Subscription-aware waking of parked agents remains Phase 5 work (not faked
+here).
 
 ## 3. `AgentSpec` wire form (spawn)
 
@@ -114,6 +135,7 @@ re-fired, never reported as delivered, always operator-visible on stderr.
 | `BH_RTD_BRAIN_SOCKET` | daemon | Jeumpa brain peer (`src/colony/jeumpa_uds_server.py`) |
 | `BH_RTD_BRAIN_MODEL` | daemon | default model for spawned threads |
 | `BH_RTD_TOOLS_SOCKET` | daemon | tools peer (`src/agent_tools/uds_server.py`); wires `bh-mcp-bridge` tools onto threads |
+| `BH_RTD_WATCHDOG_MS` | daemon | Phase 5 watchdog stall threshold in ms (default `30000`; must be ≥ 1) — a silent, unparked thread older than this reports `stalled` |
 | `BH_RTD_BIN` | Python launcher | path to the daemon binary (default `<repo>/rust/target/release/bh-rtd`) |
 
 ## 7. Python ⇄ Rust seam mapping (Phase 2 wedge)

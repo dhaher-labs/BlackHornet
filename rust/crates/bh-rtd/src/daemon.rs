@@ -21,11 +21,11 @@
 //!
 //! | method | params | result |
 //! |---|---|---|
-//! | `health` | — | `{status, service, protocol, runtime, version, brain, tools, threads, max_threads, timers_pending}` |
+//! | `health` | — | `{status, service, protocol, runtime, version, brain, tools, threads, max_threads, timers_pending, watchdog: {stall_threshold_ms, active, parked, stalled, stalled_agents}}` |
 //! | `spawn_thread` | `name` (required), `role?`, `instructions?` | `{accepted, agent_id, thread_id}` |
 //! | `send_event` | `agent_id` (required), `kind?` (`task_assigned`\|`message_received`\|`health_tick`\|`custom`), `payload?` | `{accepted}` |
 //! | `shutdown_thread` | `agent_id` (required) | `{accepted, thread_id}` |
-//! | `list_threads` | — | `{threads: [{agent_id, thread_id, role, events_seen, last_event}]}` |
+//! | `list_threads` | — | `{threads: [{agent_id, thread_id, role, events_seen, last_event, last_event_age_ms, parked, watch_state}]}` — Phase 5 watchdog fields are additive |
 //! | `tools/list` | — | `{tools: [{name, native, transport, category, autonomy_level, description, input_schema, output_schema}], count}` — the wired tool catalog (Phase 4: native RAP tools carry `native: true`) |
 //! | `tools/call` | `name` (required), `args?` | the tool's own result payload (business failures stay inside it, mirroring `src/agent_tools/uds_server.py`'s `tools/call`); unknown tools arrive as `{success: false, error, error_code: -32601}` |
 //! | `schedule_timer` | `delay_ms` (required > 0), `agent_id?`, `payload?` | `{accepted, timer_id}` |
@@ -97,6 +97,10 @@ pub const ENV_BRAIN_MODEL: &str = "BH_RTD_BRAIN_MODEL";
 /// the host with [`crate::infinity_host::InfinityHostConfig::tools`] built
 /// from `bh-mcp-bridge`'s catalog (BH tools execute Python-side, unchanged).
 pub const ENV_TOOLS_SOCKET: &str = "BH_RTD_TOOLS_SOCKET";
+/// Environment variable: Phase 5 watchdog stall threshold in milliseconds
+/// — a tracked thread silent (and not parked) for longer than this is
+/// reported stalled. Must be >= 1 when set.
+pub const ENV_WATCHDOG_MS: &str = "BH_RTD_WATCHDOG_MS";
 
 /// Default bounded pool size.
 pub const DEFAULT_MAX_THREADS: usize = 16;
@@ -190,6 +194,10 @@ pub struct DaemonConfig {
     /// The direct `tools/call` router (built by the binary; `None` when no
     /// tools are wired — direct calls then report every tool as not found).
     pub direct_tools: Option<Arc<dyn DirectToolRouter>>,
+    /// Phase 5 watchdog stall threshold (ms): a tracked thread silent (and
+    /// not parked via `sleep_until_event_or_input`) for longer than this is
+    /// reported `stalled` by `health`/`list_threads`.
+    pub watchdog_stall_ms: u64,
     /// Cooperative stop flag: set by the `shutdown` method, the binary's
     /// `SIGTERM`/`SIGINT` handler, or any test/embedding that wants a
     /// graceful stop. One flag drives the accept loop, the timer ticker and
@@ -209,6 +217,7 @@ impl core::fmt::Debug for DaemonConfig {
             .field("brain_model", &self.brain_model)
             .field("tools_socket", &self.tools_socket)
             .field("tool_catalog", &self.tool_catalog)
+            .field("watchdog_stall_ms", &self.watchdog_stall_ms)
             .field(
                 "direct_tools",
                 &self.direct_tools.as_ref().map(|_| "<router>"),
@@ -311,6 +320,8 @@ pub struct DaemonState {
     tool_catalog: Vec<ToolCatalogEntry>,
     /// The direct `tools/call` router (`None` when no tools are wired).
     direct_tools: Option<Arc<dyn DirectToolRouter>>,
+    /// Phase 5 watchdog stall threshold (for `health`/`list_threads`).
+    watchdog_stall_ms: u64,
 }
 
 impl DaemonState {
@@ -340,7 +351,16 @@ impl DaemonState {
             max_threads,
             tool_catalog: Vec::new(),
             direct_tools: None,
+            watchdog_stall_ms: crate::watchdog::DEFAULT_STALL_MS,
         }
+    }
+
+    /// Set the Phase 5 watchdog stall threshold (the binary maps
+    /// `BH_RTD_WATCHDOG_MS` onto this; defaults to
+    /// [`crate::watchdog::DEFAULT_STALL_MS`]).
+    pub fn with_watchdog_stall_ms(mut self, stall_ms: u64) -> Self {
+        self.watchdog_stall_ms = stall_ms;
+        self
     }
 
     /// Attach the tool catalog and the direct `tools/call` router (the
@@ -434,6 +454,7 @@ pub fn run_daemon(config: DaemonConfig, tools: Vec<DaemonToolBox>) -> Result<(),
         config.max_threads,
         Arc::clone(&config.stop),
     )
+    .with_watchdog_stall_ms(config.watchdog_stall_ms)
     .with_tools(config.tool_catalog.clone(), config.direct_tools.clone()));
 
     let listener = bind_socket(&config.socket_path)?;
@@ -619,7 +640,7 @@ pub fn dispatch(
         "spawn_thread" => spawn_thread(host, params, id),
         "send_event" => send_event(host, params, id),
         "shutdown_thread" => shutdown_thread(host, params, id),
-        "list_threads" => list_threads(host, id),
+        "list_threads" => list_threads(host, state, id),
         "tools/list" => tools_list(state, id),
         "tools/call" => tools_call(state, params, id),
         "schedule_timer" => schedule_timer(wheel, params, id),
@@ -732,24 +753,35 @@ fn with_host<T>(
 }
 
 fn health(host: &Arc<SharedHost>, wheel: &TimerWheel, state: &DaemonState, id: Value) -> Value {
-    let threads = with_host(host, |h| h.thread_stats().map(|s| s.len()));
+    let stats = with_host(host, |h| h.thread_stats());
     let timers_pending = wheel.pending_count();
-    match (threads, timers_pending) {
-        (Ok(threads), Ok(timers_pending)) => ok_envelope(
-            id,
-            json!({
-                "status": "ok",
-                "service": "bh-rtd",
-                "protocol": PROTOCOL_VERSION,
-                "runtime": "rust",
-                "version": env!("CARGO_PKG_VERSION"),
-                "brain": state.brain,
-                "tools": state.tools,
-                "threads": threads,
-                "max_threads": state.max_threads,
-                "timers_pending": timers_pending,
-            }),
-        ),
+    match (stats, timers_pending) {
+        (Ok(stats), Ok(timers_pending)) => {
+            // Phase 5 watchdog: classify the snapshot at query time (pure
+            // pull — no sweeper thread, no stale watchdog state).
+            let watchdog = crate::watchdog::survey(
+                stats
+                    .iter()
+                    .map(|s| (s.agent_id.as_str(), s.last_event_age_ms, s.parked)),
+                state.watchdog_stall_ms,
+            );
+            ok_envelope(
+                id,
+                json!({
+                    "status": "ok",
+                    "service": "bh-rtd",
+                    "protocol": PROTOCOL_VERSION,
+                    "runtime": "rust",
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "brain": state.brain,
+                    "tools": state.tools,
+                    "threads": stats.len(),
+                    "max_threads": state.max_threads,
+                    "timers_pending": timers_pending,
+                    "watchdog": watchdog.to_json(),
+                }),
+            )
+        }
         (Err(e), _) => {
             error_envelope(id, CODE_INTERNAL_ERROR, format!("health failed: {e}"))
         }
@@ -883,19 +915,30 @@ fn shutdown_thread(host: &Arc<SharedHost>, params: Value, id: Value) -> Value {
     }
 }
 
-fn list_threads(host: &Arc<SharedHost>, id: Value) -> Value {
+fn list_threads(host: &Arc<SharedHost>, state: &DaemonState, id: Value) -> Value {
     let outcome = with_host(host, |h| h.thread_stats());
     match outcome {
         Ok(stats) => {
             let threads: Vec<Value> = stats
                 .into_iter()
                 .map(|s| {
+                    // Phase 5 watchdog fields (additive): heartbeat age,
+                    // park flag, and the state classified with the same
+                    // threshold `health`'s `watchdog` object reports.
+                    let watch_state = crate::watchdog::classify(
+                        s.last_event_age_ms,
+                        s.parked,
+                        state.watchdog_stall_ms,
+                    );
                     json!({
                         "agent_id": s.agent_id,
                         "thread_id": s.thread_id,
                         "role": s.role,
                         "events_seen": s.events_seen,
                         "last_event": s.last_event,
+                        "last_event_age_ms": s.last_event_age_ms,
+                        "parked": s.parked,
+                        "watch_state": watch_state.as_str(),
                     })
                 })
                 .collect();
