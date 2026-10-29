@@ -9,10 +9,11 @@ from __future__ import annotations
 import time
 import uuid
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.config.logging_config import get_logger
 from src.core.event_bus import EventBus
+from src.colony_types.messages import MessageType
 from src.colony_types.colony import ColonyTask
 
 logger = get_logger(__name__)
@@ -162,7 +163,7 @@ class ColonyCoordinator:
             sender=from_colony,
             channel="colony_coordination",
             content={"message": message},
-            message_type="broadcast",
+            message_type=MessageType.BROADCAST,
         )
 
     async def query_capabilities(self, from_colony: str, capability: str) -> list[dict[str, Any]]:
@@ -283,14 +284,18 @@ class ColonyCoordinator:
                     recipient=message.recipient_colony,
                     channel="a2a",
                     content=message.to_dict(),
-                    message_type=message.message_type.value,
+                    # A2A types are plain strings by protocol; EventBus runtime
+                    # accepts them via its isinstance->str() fallback path.
+                    message_type=cast(MessageType, message.message_type.value),
                 )
             else:
                 await self._event_bus.broadcast(
                     sender=message.sender_colony,
                     channel="a2a",
                     content=message.to_dict(),
-                    message_type=message.message_type.value,
+                    # A2A types are plain strings by protocol; EventBus runtime
+                    # accepts them via its isinstance->str() fallback path.
+                    message_type=cast(MessageType, message.message_type.value),
                 )
         except Exception as e:
             logger.warning("a2a_message_error", error=str(e))
