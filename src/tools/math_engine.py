@@ -192,7 +192,7 @@ class MathEngine:
                    k_period: int = 14, k_smooth: int = 3,
                    d_period: int = 3) -> Dict[str, List[Optional[float]]]:
         """Stochastic Oscillator %K and %D"""
-        raw_k = [None] * len(closes)
+        raw_k: List[Optional[float]] = [None] * len(closes)
 
         for i in range(k_period - 1, len(closes)):
             highest = max(highs[i - k_period + 1:i + 1])
@@ -203,7 +203,7 @@ class MathEngine:
                 raw_k[i] = ((closes[i] - lowest) / (highest - lowest)) * 100
 
         # Smooth %K
-        k_values = [None] * len(closes)
+        k_values: List[Optional[float]] = [None] * len(closes)
         for i in range(k_period - 1 + k_smooth - 1, len(closes)):
             slice_data = [v for v in raw_k[i - k_smooth + 1:i + 1] if v is not None]
             if len(slice_data) == k_smooth:
@@ -224,13 +224,15 @@ class MathEngine:
     def cci(highs: List[float], lows: List[float], closes: List[float],
             period: int = 20) -> List[Optional[float]]:
         """Commodity Channel Index"""
-        result = [None] * len(closes)
+        result: List[Optional[float]] = [None] * len(closes)
         tp = [(high + low + close) / 3 for high, low, close in zip(highs, lows, closes)]
         tp_sma = MathEngine.sma(tp, period)
 
         for i in range(period - 1, len(closes)):
-            mean_dev = sum(abs(tp[j] - tp_sma[i]) for j in range(i - period + 1, i + 1)) / period
-            result[i] = (tp[i] - tp_sma[i]) / (0.015 * mean_dev) if mean_dev else 0
+            tp_sma_i = tp_sma[i]
+            if tp_sma_i is not None:
+                mean_dev = sum(abs(tp[j] - tp_sma_i) for j in range(i - period + 1, i + 1)) / period
+                result[i] = (tp[i] - tp_sma_i) / (0.015 * mean_dev) if mean_dev else 0
 
         return result
 
@@ -257,9 +259,9 @@ class MathEngine:
                         abs(lows[i] - closes[i - 1]))
 
         # Smooth with Wilder's method
-        atr_vals = [None] * n
-        smooth_plus_dm = [None] * n
-        smooth_minus_dm = [None] * n
+        atr_vals: List[Optional[float]] = [None] * n
+        smooth_plus_dm: List[Optional[float]] = [None] * n
+        smooth_minus_dm: List[Optional[float]] = [None] * n
 
         if n > period:
             atr_vals[period] = sum(tr[1:period + 1]) / period
@@ -267,31 +269,41 @@ class MathEngine:
             smooth_minus_dm[period] = sum(minus_dm[1:period + 1]) / period
 
             for i in range(period + 1, n):
-                atr_vals[i] = (atr_vals[i - 1] * (period - 1) + tr[i]) / period
-                smooth_plus_dm[i] = (smooth_plus_dm[i - 1] * (period - 1) + plus_dm[i]) / period
-                smooth_minus_dm[i] = (smooth_minus_dm[i - 1] * (period - 1) + minus_dm[i]) / period
+                prev_atr = atr_vals[i - 1]
+                prev_pdm = smooth_plus_dm[i - 1]
+                prev_mdm = smooth_minus_dm[i - 1]
+                assert prev_atr is not None and prev_pdm is not None and prev_mdm is not None
+                atr_vals[i] = (prev_atr * (period - 1) + tr[i]) / period
+                smooth_plus_dm[i] = (prev_pdm * (period - 1) + plus_dm[i]) / period
+                smooth_minus_dm[i] = (prev_mdm * (period - 1) + minus_dm[i]) / period
 
         # +DI and -DI
-        plus_di = [None] * n
-        minus_di = [None] * n
-        dx = [None] * n
+        plus_di: List[Optional[float]] = [None] * n
+        minus_di: List[Optional[float]] = [None] * n
+        dx: List[Optional[float]] = [None] * n
 
         for i in range(period, n):
-            if atr_vals[i] and atr_vals[i] > 0:
-                plus_di[i] = (smooth_plus_dm[i] / atr_vals[i]) * 100
-                minus_di[i] = (smooth_minus_dm[i] / atr_vals[i]) * 100
-                di_sum = plus_di[i] + minus_di[i]
-                dx[i] = abs(plus_di[i] - minus_di[i]) / di_sum * 100 if di_sum else 0
+            atr_i = atr_vals[i]
+            pdm_i = smooth_plus_dm[i]
+            mdm_i = smooth_minus_dm[i]
+            if atr_i is not None and atr_i > 0 and pdm_i is not None and mdm_i is not None:
+                k_pct = (pdm_i / atr_i) * 100
+                d_pct = (mdm_i / atr_i) * 100
+                plus_di[i] = k_pct
+                minus_di[i] = d_pct
+                di_sum = k_pct + d_pct
+                dx[i] = abs(k_pct - d_pct) / di_sum * 100 if di_sum else 0
 
         # ADX = smoothed DX
-        adx_values = [None] * n
+        adx_values: List[Optional[float]] = [None] * n
         if n > 2 * period:
-            adx_values[2 * period - 1] = sum(
-                dx[j] for j in range(period, 2 * period) if dx[j] is not None
-            ) / period
+            dx_window = [v for v in dx[period:2 * period] if v is not None]
+            adx_values[2 * period - 1] = sum(dx_window) / period
             for i in range(2 * period, n):
-                if dx[i] is not None and adx_values[i - 1] is not None:
-                    adx_values[i] = (adx_values[i - 1] * (period - 1) + dx[i]) / period
+                dx_i = dx[i]
+                prev_adx = adx_values[i - 1]
+                if dx_i is not None and prev_adx is not None:
+                    adx_values[i] = (prev_adx * (period - 1) + dx_i) / period
 
         return {"adx": adx_values, "plus_di": plus_di, "minus_di": minus_di, "dx": dx}
 
@@ -303,7 +315,7 @@ class MathEngine:
     def vwap(highs: List[float], lows: List[float], closes: List[float],
              volumes: List[float]) -> List[Optional[float]]:
         """Cumulative VWAP"""
-        result = [None] * len(closes)
+        result: List[Optional[float]] = [None] * len(closes)
         cum_tp_vol = 0.0
         cum_vol = 0.0
 
@@ -414,8 +426,8 @@ class MathEngine:
     # ========================
 
     @staticmethod
-    def analyze_sequence(closes: List[float], highs: List[float] = None,
-                          lows: List[float] = None, volumes: List[float] = None
+    def analyze_sequence(closes: List[float], highs: Optional[List[float]] = None,
+                          lows: Optional[List[float]] = None, volumes: Optional[List[float]] = None
                           ) -> Dict:
         """Run full indicator analysis on price data"""
         if not closes or len(closes) < 30:
@@ -425,30 +437,31 @@ class MathEngine:
         lows = lows or closes
         volumes = volumes or [1.0] * len(closes)
 
+        indicators: Dict[str, object] = {}
         result = {
             "latest_close": closes[-1],
             "bars": len(closes),
             "timestamp": datetime.now().isoformat(),
-            "indicators": {}
+            "indicators": indicators
         }
 
         # RSI
         rsi = MathEngine.rsi(closes, 14)
-        result["indicators"]["rsi_14"] = rsi[-1]
+        indicators["rsi_14"] = rsi[-1]
 
         # EMA
         for period in [9, 20, 50, 200]:
             ema = MathEngine.ema(closes, period)
-            result["indicators"][f"ema_{period}"] = ema[-1]
+            indicators[f"ema_{period}"] = ema[-1]
 
         # SMA
         for period in [20, 50, 200]:
             sma = MathEngine.sma(closes, period)
-            result["indicators"][f"sma_{period}"] = sma[-1]
+            indicators[f"sma_{period}"] = sma[-1]
 
         # MACD
         macd = MathEngine.macd(closes)
-        result["indicators"]["macd"] = {
+        indicators["macd"] = {
             "line": macd["macd"][-1],
             "signal": macd["signal"][-1],
             "histogram": macd["histogram"][-1]
@@ -456,7 +469,7 @@ class MathEngine:
 
         # Bollinger Bands
         bb = MathEngine.bollinger_bands(closes)
-        result["indicators"]["bollinger"] = {
+        indicators["bollinger"] = {
             "upper": bb["upper"][-1],
             "middle": bb["middle"][-1],
             "lower": bb["lower"][-1],
@@ -466,23 +479,23 @@ class MathEngine:
 
         # ATR
         atr = MathEngine.atr(highs, lows, closes, 14)
-        result["indicators"]["atr_14"] = atr[-1]
-        result["indicators"]["atr_pct"] = (atr[-1] / closes[-1] * 100) if atr[-1] and closes[-1] else None
+        indicators["atr_14"] = atr[-1]
+        indicators["atr_pct"] = (atr[-1] / closes[-1] * 100) if atr[-1] and closes[-1] else None
 
         # Stochastic
         stoch = MathEngine.stochastic(highs, lows, closes)
-        result["indicators"]["stochastic"] = {
+        indicators["stochastic"] = {
             "k": stoch["k"][-1],
             "d": stoch["d"][-1]
         }
 
         # CCI
         cci = MathEngine.cci(highs, lows, closes)
-        result["indicators"]["cci_20"] = cci[-1]
+        indicators["cci_20"] = cci[-1]
 
         # ADX
         adx = MathEngine.adx(highs, lows, closes)
-        result["indicators"]["adx"] = {
+        indicators["adx"] = {
             "adx": adx["adx"][-1],
             "plus_di": adx["plus_di"][-1],
             "minus_di": adx["minus_di"][-1]
@@ -490,10 +503,10 @@ class MathEngine:
 
         # VWAP
         vwap = MathEngine.vwap(highs, lows, closes, volumes)
-        result["indicators"]["vwap"] = vwap[-1]
+        indicators["vwap"] = vwap[-1]
 
         # Volume Profile
         vp = MathEngine.volume_profile(highs[-50:], lows[-50:], volumes[-50:])
-        result["indicators"]["volume_profile"] = vp
+        indicators["volume_profile"] = vp
 
         return result
