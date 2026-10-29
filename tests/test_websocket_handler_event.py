@@ -79,5 +79,121 @@ class ResolveEventTypeTests(unittest.TestCase):
         self.assertEqual(WebSocketHandler._resolve_event_type(object()), "unknown")
 
 
+class TopicFilterTests(unittest.TestCase):
+    """Per-client topic filtering + subscribe contract (EVENT_UI_MAPPING.md §4)."""
+
+    def _handler_two_clients(self) -> Any:
+        handler = WebSocketHandler(event_bus=None)
+        handler.start()
+        s1 = _RecordingSender()
+        s2 = _RecordingSender()
+        handler.register_client("agents", s1)
+        handler.register_client("tasks", s2)
+        return handler, s1, s2
+
+    def test_unsubscribed_client_receives_everything(self) -> None:
+        handler, s1, s2 = self._handler_two_clients()
+        handler._on_event(UIEvent(type="system.startup", data={}))
+        self.assertEqual(len(s1.messages), 1)
+        self.assertEqual(len(s2.messages), 1)
+
+    def test_topic_glob_filters_per_client(self) -> None:
+        handler, s1, s2 = self._handler_two_clients()
+        handler.handle_client_message(
+            "agents", {"type": "subscribe", "topics": ["agent.*"]}
+        )
+        handler.handle_client_message(
+            "tasks", {"type": "subscribe", "topics": ["task.*"]}
+        )
+        handler._on_event(CoreEvent(event_type=EventType.AGENT_SPAWNED))
+        handler._on_event(CoreEvent(event_type=EventType.TASK_COMPLETED))
+        self.assertEqual(len(s1.messages), 1)
+        self.assertEqual(s1.messages[0]["data"]["ui_type"], "agent.spawned")
+        self.assertEqual(len(s2.messages), 1)
+        self.assertEqual(s2.messages[0]["data"]["ui_type"], "task.completed")
+
+    def test_agent_state_changed_maps_to_agent_state(self) -> None:
+        handler, s1, s2 = self._handler_two_clients()
+        handler.handle_client_message(
+            "agents", {"type": "subscribe", "topics": ["agent.*"]}
+        )
+        handler.handle_client_message(
+            "tasks", {"type": "subscribe", "topics": ["task.*"]}
+        )
+        handler._on_event(
+            CoreEvent(
+                event_type=EventType.AGENT_STATE_CHANGED,
+                data={"agent_id": "a1", "to": "parked"},
+            )
+        )
+        self.assertEqual(s1.messages[0]["data"]["ui_type"], "agent.state")
+        self.assertEqual(s2.messages, [])
+
+    def test_exact_topic_match(self) -> None:
+        handler, s1, _ = self._handler_two_clients()
+        handler.handle_client_message(
+            "agents", {"type": "subscribe", "topics": ["task.completed"]}
+        )
+        handler._on_event(CoreEvent(event_type=EventType.TASK_COMPLETED))
+        handler._on_event(CoreEvent(event_type=EventType.TASK_FAILED))
+        self.assertEqual(len(s1.messages), 1)
+        self.assertEqual(s1.messages[0]["data"]["ui_type"], "task.completed")
+
+    def test_star_wildcard_receives_all(self) -> None:
+        handler, s1, _ = self._handler_two_clients()
+        handler.handle_client_message("agents", {"type": "subscribe", "topics": ["*"]})
+        handler._on_event(CoreEvent(event_type=EventType.TASK_FAILED))
+        handler._on_event(CoreEvent(event_type=EventType.HEARTBEAT))
+        self.assertEqual(len(s1.messages), 2)
+        self.assertEqual(s1.messages[1]["data"]["ui_type"], "agent.heartbeat")
+
+    def test_empty_topics_resubscribe_receives_all(self) -> None:
+        handler, s1, _ = self._handler_two_clients()
+        handler.handle_client_message(
+            "agents", {"type": "subscribe", "topics": ["agent.*"]}
+        )
+        handler.handle_client_message("agents", {"type": "subscribe", "topics": []})
+        handler._on_event(CoreEvent(event_type=EventType.TASK_COMPLETED))
+        self.assertEqual(len(s1.messages), 1)
+
+    def test_direct_broadcast_ignores_subscriptions(self) -> None:
+        handler, s1, _ = self._handler_two_clients()
+        handler.handle_client_message(
+            "agents", {"type": "subscribe", "topics": ["agent.*"]}
+        )
+        handler.broadcast("manual.push", {"note": "admin"})
+        self.assertEqual(len(s1.messages), 1)
+        self.assertEqual(s1.messages[0]["type"], "manual.push")
+
+    def test_handle_client_message_rejects_malformed(self) -> None:
+        handler, _, _ = self._handler_two_clients()
+        self.assertFalse(handler.handle_client_message("agents", "not-a-dict"))
+        self.assertFalse(handler.handle_client_message("agents", {"type": "ping"}))
+        self.assertFalse(
+            handler.handle_client_message(
+                "agents", {"type": "subscribe", "topics": "agent.*"}
+            )
+        )
+        self.assertFalse(
+            handler.handle_client_message(
+                "agents", {"type": "subscribe", "topics": [123]}
+            )
+        )
+        self.assertFalse(
+            handler.handle_client_message(
+                "ghost", {"type": "subscribe", "topics": ["agent.*"]}
+            )
+        )
+
+    def test_ui_event_type_normalization_table(self) -> None:
+        self.assertEqual(WebSocketHandler._ui_event_type("agent_spawned"), "agent.spawned")
+        self.assertEqual(WebSocketHandler._ui_event_type("agent_state_changed"), "agent.state")
+        self.assertEqual(WebSocketHandler._ui_event_type("heartbeat"), "agent.heartbeat")
+        self.assertEqual(WebSocketHandler._ui_event_type("custom"), "ecosystem.event")
+        self.assertEqual(WebSocketHandler._ui_event_type("colony_created"), "colony.created")
+        self.assertEqual(WebSocketHandler._ui_event_type("agent.spawned"), "agent.spawned")
+        self.assertEqual(WebSocketHandler._ui_event_type("unknown"), "unknown")
+
+
 if __name__ == "__main__":
     unittest.main()

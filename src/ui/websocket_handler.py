@@ -11,9 +11,29 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional, Set
+from fnmatch import fnmatchcase
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
 logger = logging.getLogger(__name__)
+
+# Canonical bus-key -> UI type mapping (docs/02-arch/EVENT_UI_MAPPING.md §3).
+# Keys absent from the table fall back to replacing the first underscore.
+_UI_EVENT_TYPE_MAP = {
+    "agent_spawned": "agent.spawned",
+    "agent_terminated": "agent.terminated",
+    "agent_state_changed": "agent.state",
+    "task_submitted": "task.submitted",
+    "task_completed": "task.completed",
+    "task_failed": "task.failed",
+    "tool_called": "tool.called",
+    "tool_result": "tool.result",
+    "memory_stored": "memory.stored",
+    "memory_retrieved": "memory.retrieved",
+    "memory_compacted": "memory.compacted",
+    "a2a_message": "a2a.message",
+    "heartbeat": "agent.heartbeat",
+    "custom": "ecosystem.event",
+}
 
 
 class WebSocketClient:
@@ -35,6 +55,20 @@ class WebSocketClient:
 
     def is_alive(self, timeout: float = 30.0) -> bool:
         return (time.time() - self.last_heartbeat) < timeout
+
+    def subscribe(self, topics: Iterable[str]) -> None:
+        """Record topic globs for this client.
+
+        An empty subscription set means "receive everything" — the default,
+        kept for TUI/backwards compatibility (EVENT_UI_MAPPING.md §4).
+        """
+        self.subscriptions = {t for t in topics if isinstance(t, str) and t}
+
+    def matches(self, ui_type: str) -> bool:
+        """Return True if this client should receive a given UI type."""
+        if not self.subscriptions:
+            return True
+        return any(fnmatchcase(ui_type, topic) for topic in self.subscriptions)
 
 
 class WebSocketHandler:
@@ -151,18 +185,75 @@ class WebSocketHandler:
         value = getattr(raw, "value", None)
         return value if isinstance(value, str) else str(raw)
 
+    @staticmethod
+    def _ui_event_type(raw: str) -> str:
+        """Normalize a resolved event key to its UI type (mapping §3)."""
+        mapped = _UI_EVENT_TYPE_MAP.get(raw)
+        if mapped is not None:
+            return mapped
+        if "_" in raw:
+            return raw.replace("_", ".", 1)
+        return raw
+
+    def handle_client_message(self, client_id: str, message: Any) -> bool:
+        """Parse an inbound client control message.
+
+        Supports the subscribe contract (EVENT_UI_MAPPING.md §4):
+        ``{"type": "subscribe", "topics": ["agent.*", "task.*"]}``.
+        Returns True when the message was recognized and applied; malformed
+        or unknown messages are ignored safely (False).
+        """
+        if not isinstance(message, dict):
+            return False
+        if message.get("type") != "subscribe":
+            return False
+        topics = message.get("topics")
+        if not isinstance(topics, list) or not all(
+            isinstance(t, str) for t in topics
+        ):
+            return False
+        with self._lock:
+            client = self._clients.get(client_id)
+        if client is None:
+            return False
+        client.subscribe(topics)
+        return True
+
+    def _broadcast_filtered(self, message: Dict[str, Any], ui_type: str) -> int:
+        """Fan a message out to subscribers whose topics match ``ui_type``."""
+        sent = 0
+        dead_clients: List[str] = []
+        with self._lock:
+            clients = list(self._clients.items())
+        for client_id, client in clients:
+            if not client.matches(ui_type):
+                continue
+            if client.send(message):
+                sent += 1
+            else:
+                dead_clients.append(client_id)
+        for cid in dead_clients:
+            self.unregister_client(cid)
+        return sent
+
     def _on_event(self, event: Any) -> None:
         """Handle events from EventBus and broadcast to WebSocket clients."""
         if not self._running:
             return
 
+        resolved = self._resolve_event_type(event)
+        ui_type = self._ui_event_type(resolved)
         data = {
-            "event_type": self._resolve_event_type(event),
+            "event_type": resolved,
+            "ui_type": ui_type,
             "event_data": getattr(event, "data", {}),
             "source": getattr(event, "source", ""),
             "timestamp": getattr(event, "timestamp", time.time()),
         }
-        self.broadcast("ecosystem.event", data)
+        self._broadcast_filtered(
+            {"type": "ecosystem.event", "data": data, "timestamp": time.time()},
+            ui_type,
+        )
 
     def get_stats(self) -> Dict[str, Any]:
         return {
