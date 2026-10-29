@@ -93,7 +93,6 @@ class MarketDataTool:
 
         try:
             import yfinance as yf
-            import math
 
             yf_symbol = self.SYMBOL_MAP.get(symbol, {}).get("yfinance", symbol)
             yf_interval = self.INTERVAL_MAP.get(interval, {}).get("yfinance", "1h")

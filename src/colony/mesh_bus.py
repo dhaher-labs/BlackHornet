@@ -185,7 +185,6 @@ class MeshBus:  # noqa: D101
 
     async def _http_listener(self) -> None:
         try:
-            import aiohttp
             from aiohttp import web
         except ImportError:
             logger.warning("aiohttp not installed; mesh HTTP listener disabled")

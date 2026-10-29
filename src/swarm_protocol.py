@@ -20,6 +20,7 @@ Architecture:
   Discovery happens via Git pull/push every N seconds.
 """
 
+import importlib
 import os
 import platform
 import sys
@@ -132,13 +133,16 @@ class SwarmProtocol:
         caps = ["swarm_protocol", "self_upgrade", "memory_sync"]
         # Detect based on available tools
         try:
-            from src.tools.shared_state import get_shared_state
+            # Availability probe: import must EXECUTE the module (import_module,
+            # not find_spec) so a present-but-broken tool is correctly treated
+            # as unavailable, matching the original `import` semantics.
+            importlib.import_module("src.tools.shared_state")
             caps.append("trading")
             caps.append("risk_management")
         except ImportError:
             pass
         try:
-            import yfinance
+            importlib.import_module("yfinance")
             caps.append("market_data")
         except ImportError:
             pass
@@ -482,7 +486,7 @@ class SwarmProtocol:
             auto_heal: bool = True):
         """
         Immortal swarm loop — never stops.
-        
+
         Every cycle:
           1. Pull latest swarm state
           2. Send heartbeat

@@ -50,10 +50,7 @@ try:
     from src.tools.shared_state import get_shared_state
     from src.tools.market_data_tool import MarketDataTool
     from src.tools.technical_analysis_tool import TechnicalAnalysisTool
-    from src.tools.risk_officer_tool import RiskOfficerTool
     from src.tools.execution_tool import ExecutionTool
-    from src.tools.kill_switch_tool import KillSwitchTool
-    from src.tools.journal_tool import JournalTool
     from src.tools.strategy_tool import StrategyTool
     from src.tools.macro_sentiment_tool import MacroSentimentTool
     from src.tools.portfolio_tool import PortfolioTool
