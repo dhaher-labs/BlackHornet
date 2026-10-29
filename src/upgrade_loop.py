@@ -6,7 +6,7 @@ import logging
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -39,7 +39,7 @@ class BHUpgradeLoop:
         if not self.amc_available:
             return {"available": False}
 
-        changes = {"available": True, "new_patterns": [], "updated_patterns": []}
+        changes: Dict[str, Any] = {"available": True, "new_patterns": [], "updated_patterns": []}
         colony_state = Path(__file__).parent.parent / "data" / "colony_state.json"
 
         try:
@@ -69,7 +69,7 @@ class BHUpgradeLoop:
         return changes
 
     def pull_from_amc(self) -> Dict[str, bool]:
-        results = {}
+        results: Dict[str, Any] = {}
         try:
             from colony_bridge import ColonyBridge
             bridge = ColonyBridge()

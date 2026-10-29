@@ -1,6 +1,7 @@
 """AutoDiscoveryEnhancer — runtime tool/skill/capability discovery."""
 
 import importlib
+import importlib.util
 import inspect
 import json
 import os
