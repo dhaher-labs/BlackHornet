@@ -77,7 +77,7 @@ class FallbackChain:
         # Check cache
         cached = self._check_cache(prompt)
         if cached is not None:
-            logger.debug("cache_hit", prompt_preview=prompt[:60])
+            logger.debug("cache_hit prompt_preview=%s", prompt[:60])
             return cached
 
         self._router.route(prompt)
@@ -115,7 +115,7 @@ class FallbackChain:
         """
         cached = self._check_cache(prompt)
         if cached is not None:
-            logger.debug("cache_hit", prompt_preview=prompt[:60])
+            logger.debug("cache_hit prompt_preview=%s", prompt[:60])
             return cached
 
         self._router.route(prompt)
@@ -146,10 +146,10 @@ class FallbackChain:
             try:
                 content, latency = self._call_provider(provider_name, model, prompt)
                 logger.info(
-                    "provider_success",
-                    provider=provider_name,
-                    model=model,
-                    latency_ms=round(latency * 1000, 1),
+                    "provider_success provider=%s model=%s latency_ms=%s",
+                    provider_name,
+                    model,
+                    round(latency * 1000, 1),
                 )
                 return FallbackResult(
                     success=True,
@@ -161,10 +161,10 @@ class FallbackChain:
                 )
             except Exception as exc:
                 logger.warning(
-                    "provider_failed",
-                    provider=provider_name,
-                    model=model,
-                    error=str(exc),
+                    "provider_failed provider=%s model=%s error=%s",
+                    provider_name,
+                    model,
+                    exc,
                 )
 
         return FallbackResult(

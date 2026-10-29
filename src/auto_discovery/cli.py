@@ -159,7 +159,7 @@ class AutoDiscoveryCLI:
                 self._print_footer()
                 sys.exit(130)
             except Exception as exc:
-                logger.error("cli_command_failed", command=parsed.command, error=str(exc))
+                logger.error("cli_command_failed command=%s error=%s", parsed.command, exc)
                 self._print_box_line()
                 print(f"║  Error: {str(exc):<48} ║")
                 self._print_footer()
