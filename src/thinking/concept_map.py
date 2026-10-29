@@ -104,6 +104,8 @@ class ConceptMap:
             )
             conn.commit()
             cid = cursor.lastrowid
+            if cid is None:
+                raise RuntimeError("INSERT did not return a rowid")
             logger.debug("Added concept %d: %s", cid, name)
             return cid
         except sqlite3.IntegrityError:
@@ -163,7 +165,10 @@ class ConceptMap:
             (src.id, tgt.id, relation, weight, now),
         )
         conn.commit()
-        return cursor.lastrowid
+        edge_id = cursor.lastrowid
+        if edge_id is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return edge_id
 
     def get_edges(self, concept_name: str, direction: str = "both") -> List[ConceptEdge]:
         node = self.get_by_name(concept_name)

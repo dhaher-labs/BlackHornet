@@ -90,7 +90,10 @@ class UserProfileStore:
                  now, user_id),
             )
             conn.commit()
-            return self.get_by_user_id(user_id)
+            profile = self.get_by_user_id(user_id)
+            if profile is None:
+                raise RuntimeError(f"profile row vanished after update: {user_id}")
+            return profile
 
         traits_json = json.dumps(traits or {})
         prefs_json = json.dumps(preferences or {})
@@ -99,7 +102,10 @@ class UserProfileStore:
             (user_id, name, traits_json, prefs_json, now, now),
         )
         conn.commit()
-        return self.get_by_user_id(user_id)
+        profile = self.get_by_user_id(user_id)
+        if profile is None:
+            raise RuntimeError(f"profile row vanished after insert: {user_id}")
+        return profile
 
     def get_by_user_id(self, user_id: str) -> Optional[UserProfile]:
         row = self._get_conn().execute("SELECT * FROM profiles WHERE user_id = ?", (user_id,)).fetchone()
