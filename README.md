@@ -88,6 +88,7 @@ The trading money-path is **excluded from migration until Phase 5+**. Full detai
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture map (v7)
+- [docs/02-arch/MODULE_GRAPH.md](docs/02-arch/MODULE_GRAPH.md) — generated package dependency graph (regenerate: `python3 scripts/gen_arch_graph.py`)
 - [PLAN.md](PLAN.md) — rebuild plan, roadmap detail, acceptance criteria
 - [docs/13-changelog/](docs/13-changelog/CHANGELOG.md) — historical changelog and SAMAN integration audit
 - [README_id.md](README_id.md) / [README_zh.md](README_zh.md) — translations predate v7 and may be outdated

@@ -51,10 +51,16 @@ blackhornet/
 │   ├── config/, security/, sandbox/, thinking/   # supporting modules
 │   ├── hermes_quant.py       # paper-trading main loop (L1–L5)
 │   └── immortal_daemon.py, watchdog.py, swarm_protocol.py   # ops line
-├── tests/                    # pytest suite (366 passed / 22 skipped at v7 baseline)
+├── tests/                    # pytest suite (474 passed / 28 skipped as of the Task 21 tidy, 2026-10-29)
 ├── docs/                     # this doc, numbered tree, changelog
 └── PLAN.md                   # rebuild plan + Rust roadmap
 ```
+
+A **generated, always-current** package-level dependency graph lives in
+[`docs/02-arch/MODULE_GRAPH.md`](02-arch/MODULE_GRAPH.md) — regenerate with
+`python3 scripts/gen_arch_graph.py` after any structural change. Current shape:
+20 packages + 10 loose ops-line modules, 49 internal import edges; the most
+depended-upon packages are `config` (10 inbound), `core` (6), `colony_types` (5).
 
 ## 3. Entrypoints
 
@@ -63,7 +69,7 @@ blackhornet/
 | `bh-colony` | Unified launcher: event bus, graph store + tracker, memory system, API bridge, stdlib web server on :8080, dashboard, provider hub. Serves `GET /api/v1/ecosystem`. |
 | `bh-omega` | Omega engine boot + main loop. **Experimental:** loop content is simulated (§6). |
 | `python -m src.hermes_quant` | Paper-trading loop (long-running): yfinance data → analysis → risk veto → paper fills → SQLite journal. Telegram alerts only if `TELEGRAM_*` env vars are set. No broker connectivity exists. |
-| `pytest tests/ -q` | 366 passed / 22 skipped baseline — the gate for every change. |
+| `pytest tests/ -q` | 474 passed / 28 skipped (Task 21 tidy, 2026-10-29) — the gate for every change. |
 | `hermes.sh` / `deploy/` | Watchdog + service control (host/Termux/container). |
 
 ## 4. Dependency map
@@ -252,8 +258,9 @@ committed; a historical leak of one is the reason the pre-v7 history was retired
 
 ## 10. Tests
 
-`pytest tests/ -q` → **366 passed / 22 skipped / 0 failed** at the v7 baseline
-(verified independently twice during the rebuild audit). Coverage is unit/self-test
+`pytest tests/ -q` → **474 passed / 28 skipped / 0 failed** as of the Task 21
+repo-tidy pass (2026-10-29; the v7 rebuild baseline was 366 / 22 — the suite
+grew through Phases 3–5 and the Task 19 parity work). Coverage is unit/self-test
 heavy; no test drives a real LLM turn end-to-end. Every tidy/feature change must
 keep the suite green.
 
@@ -270,3 +277,24 @@ keep the suite green.
 Rust + hydro-project/infinity strangler-fig (phases 0–5, `BH_RUNTIME=python`
 default, trading money-path excluded until Phase 5+): see `PLAN.md` §4 and the
 Roadmap section of the README.
+
+## 13. Documentation map
+
+The numbered doc tree is the canonical home for each document class; loose
+files at `docs/` root that predate the tree were folded back into it during
+the Task 21 tidy (2026-10-29).
+
+| Slot | Contents |
+|---|---|
+| `docs/ARCHITECTURE.md` | **This document** — canonical architecture (kept loose: `Constitution.REQUIRED_CORE_DOCS` checks this exact path, and README/PLAN link it) |
+| `docs/00-vision/` … `docs/03-spec/` | Vision, PRD, architecture pointers, SPEC + [API reference](03-spec/api.md) |
+| `docs/02-arch/MODULE_GRAPH.md` | Generated package dependency graph (`scripts/gen_arch_graph.py`) |
+| `docs/07-security/`, `docs/14-rules/` | Security notes, project rules |
+| `docs/09-testing/` | Testing policy |
+| `docs/10-roadmap/`, `docs/12-tasks/` | Roadmap, task list, archived dated plans (`12-tasks/plans/`) |
+| `docs/11-adr/` | Architecture decision records |
+| `docs/13-changelog/` | Historical changelog + SAMAN audit |
+| `docs/17-glossary/` | Glossary |
+
+Gaps the tree still has on purpose (honesty rule): `04`–`06`, `08`, `15`, `16`
+are unassigned; no placeholder files are kept for them.
