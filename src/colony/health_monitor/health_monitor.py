@@ -57,9 +57,11 @@ class ColonyHealthMonitor:
             timeout_seconds=60.0,
         )
 
-    def wire_nest(self, nest: SelfNest) -> None:
-        """Wire SelfNest to health monitor."""
+    def wire_nest(self, nest: Optional[SelfNest]) -> None:
+        """Wire SelfNest to health monitor (None to unregister)."""
         self._nest = nest
+        if nest is None:
+            return
         # Register nest components for recovery
         if nest.components:
             for component_id in nest.components.keys():

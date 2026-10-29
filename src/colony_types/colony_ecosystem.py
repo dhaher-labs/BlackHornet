@@ -120,5 +120,6 @@ class NestStatusReport(BaseModel):
     components: dict[str, str] = Field(default_factory=dict)
     peers_connected: int = 0
     errors: list[str] = Field(default_factory=list)
+    health: Optional[dict[str, Any]] = None
 
     model_config = {"arbitrary_types_allowed": True}
