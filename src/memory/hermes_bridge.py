@@ -113,7 +113,7 @@ class HermesMemoryBridge:
         session_id: str = "",
     ) -> List[Dict[str, Any]]:
         """Query memories across all tiers."""
-        results = []
+        results: List[Dict[str, Any]] = []
 
         for rec in self._records.values():
             if agent_id and rec.agent_id != agent_id:

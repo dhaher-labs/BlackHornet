@@ -236,6 +236,7 @@ class MemoryTool(MCPTool):
         query = params.get("query", "")
         limit = params.get("limit", 10)
 
+        results: List[Dict[str, Any]]
         if not query:
             # Return all keys
             results = [{"key": k, "relevance": 1.0} for k in self._store.keys()]
