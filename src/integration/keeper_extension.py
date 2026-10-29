@@ -24,24 +24,24 @@ class KeeperExtension:
         try:
             if module_name == "auto_discovery":
                 from src.auto_discovery.integration import AutoDiscoveryEngine
-                engine = AutoDiscoveryEngine()
+                AutoDiscoveryEngine()  # smoke: instantiation must not raise
                 result["status"] = "ok"
             elif module_name == "memory":
                 from src.memory.system import MemorySystem, MemorySystemConfig
                 cfg = MemorySystemConfig(data_dir="/tmp/bh_test_memory")
-                ms = MemorySystem(cfg)
+                MemorySystem(cfg)  # smoke
                 result["status"] = "ok"
             elif module_name == "graph":
                 from src.graph.graph_store import GraphStore
-                gs = GraphStore(":memory:")
+                GraphStore(":memory:")  # smoke
                 result["status"] = "ok"
             elif module_name == "sandbox":
                 from src.sandbox.sandbox_manager import SandboxManager
-                sm = SandboxManager()
+                SandboxManager()  # smoke
                 result["status"] = "ok"
             elif module_name == "ui":
                 from src.ui.web_server import WebServer
-                ws = WebServer()
+                WebServer()  # smoke
                 result["status"] = "ok"
             else:
                 result["status"] = "unknown_module"

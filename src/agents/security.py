@@ -189,7 +189,6 @@ class SecurityAgent(BaseAgent):
         * ``lockfile`` – contents of a lock file.
         """
         dependencies = task.payload.get("dependencies", [])
-        lockfile = task.payload.get("lockfile", "")
 
         vulnerable_deps: List[Dict[str, Any]] = []
         total_deps = len(dependencies)
@@ -335,9 +334,6 @@ class SecurityAgent(BaseAgent):
 
     async def _full_audit(self, task: Task) -> Dict[str, Any]:
         """Run a full audit: vulnerability scan + dependency audit + secret scan."""
-        target = task.payload.get("target", "unknown")
-        dependencies = task.payload.get("dependencies", [])
-        content = task.payload.get("content", "")
 
         vuln_result = await self._vulnerability_scan(task)
         dep_result = await self._dependency_audit(task)

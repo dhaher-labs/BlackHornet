@@ -100,9 +100,6 @@ class ColonyConsciousness:
         for event in events:
             event_id = event.get("id", "")
             event_type = event.get("event_type", "unknown")
-            data = event.get("data", {}) or {}
-            source = event.get("source", "system")
-            timestamp = event.get("timestamp", time.time())
 
             if event_id and event_id in self._processed_ids:
                 continue

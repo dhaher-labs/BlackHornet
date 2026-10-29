@@ -107,7 +107,6 @@ class ColonyAgent(BaseAgent):
         """Handle A2A messages for colony coordination."""
         msg_type = message.get("message_type", "")
         if msg_type == "agent_registration":
-            payload = message.get("payload", {})
             return {"registered": True, "colony_id": self.colony_id}
         elif msg_type == "task_request":
             return await self._handle_task_request(message.get("payload", {}))
@@ -117,7 +116,6 @@ class ColonyAgent(BaseAgent):
             return {"acknowledged": True}
         elif msg_type == "agent_health":
             agent_id = message.get("payload", {}).get("agent_id", "")
-            health = message.get("payload", {}).get("health_score", 1.0)
             return {"tracked": True}
         return {"acknowledged": True}
 
@@ -170,7 +168,6 @@ class ColonyAgent(BaseAgent):
 
         # Delegate via A2A
         if target_agent in self._managed_agents:
-            agent = self._managed_agents[target_agent]
             message_id = await self.send_message(
                 target_agent,
                 "task_delegation",
