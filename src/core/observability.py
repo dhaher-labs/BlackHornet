@@ -32,7 +32,7 @@ import os
 import time
 import functools
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional, TypeVar, Union
 
 logger = logging.getLogger(__name__)
 
@@ -283,13 +283,13 @@ class ObservabilityManager:
                 logger.warning("Failed to configure OTLP exporter: %s", e)
 
         trace.set_tracer_provider(tracer_provider)
-        self._tracer = trace.get_tracer(OTEL_SERVICE_NAME)
+        self._tracer: Union["trace.Tracer", NoOpTracer] = trace.get_tracer(OTEL_SERVICE_NAME)
 
         # Metrics
         meter_provider = MeterProvider(resource=resource)
         metrics.set_meter_provider(meter_provider)
         meter = metrics.get_meter(OTEL_SERVICE_NAME)
-        self._metrics = RealMetrics(meter)
+        self._metrics: Union[RealMetrics, NoOpMetrics] = RealMetrics(meter)
 
         self._structured_logger.info("observability_initialized", enabled=True, service=OTEL_SERVICE_NAME)
 

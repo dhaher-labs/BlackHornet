@@ -16,9 +16,11 @@ import sqlite3
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Type, TypeVar, Union
 
 logger = logging.getLogger("blackhornet.SharedState")
+
+T = TypeVar("T")
 
 # Default database path
 DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "bh_quant.db"
@@ -36,6 +38,7 @@ class SharedState:
     """
 
     _instance = None
+    _initialized: bool = False
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -360,7 +363,7 @@ class SharedState:
             self._journal = JournalTool()
         return self._journal
 
-    def _get_or_create(self, attr_name: str, cls: type) -> object:
+    def _get_or_create(self, attr_name: str, cls: Type[T]) -> T:
         """Get or create a shared tool instance"""
         if not hasattr(self, f'_{attr_name}') or getattr(self, f'_{attr_name}') is None:
             setattr(self, f'_{attr_name}', cls())
