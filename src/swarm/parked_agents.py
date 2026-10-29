@@ -30,9 +30,10 @@ import asyncio
 import inspect
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional
 
 from src.colony_types.events import Event, EventType
+from src.colony_types.models import AgentState
 from src.config.logging_config import get_logger
 from src.core.event_bus import EventBus
 
@@ -43,6 +44,32 @@ logger = get_logger(__name__)
 WakeHandler = Callable[[Optional[Event]], None]
 
 WILDCARD = "*"
+
+#: Idle states for :meth:`ParkedAgentRegistry.sync_from_states`: the agent
+#: holds no runnable work and may go dormant.
+DEFAULT_IDLE_STATES = frozenset({AgentState.SUSPENDED, AgentState.WAITING})
+#: Active states for :meth:`ParkedAgentRegistry.sync_from_states`: the agent
+#: can take work again and must be woken if it was parked.
+DEFAULT_ACTIVE_STATES = frozenset({AgentState.ACTIVE, AgentState.READY})
+#: Default wake topics: task lifecycle events (the wake affordance publishes
+#: a matching task event — EVENT_UI_MAPPING.md §5).
+DEFAULT_WAKE_EVENT_TYPES: tuple[str, ...] = (
+    EventType.TASK_SUBMITTED.value,
+    EventType.TASK_COMPLETED.value,
+)
+
+
+def _coerce_state(state: AgentState) -> AgentState:
+    """Return ``state`` as an :class:`AgentState` member.
+
+    ``AgentState`` is a ``str`` mixin enum, so raw value strings are accepted
+    and coerced; unknown values raise ``ValueError`` (fail loud). Coercion is
+    required for set membership: ``enum.Enum.__hash__`` is name-based, so a
+    raw string would not match an enum-member frozenset by hash.
+    """
+    if isinstance(state, AgentState):
+        return state
+    return AgentState(state)
 
 
 @dataclass
@@ -167,6 +194,58 @@ class ParkedAgentRegistry:
         self._detach(entry)
         self._schedule_state_change(agent_id, "active")
         return True
+
+    def sync_from_states(
+        self,
+        states: Mapping[str, AgentState],
+        wake: WakeHandler,
+        idle_states: Iterable[AgentState] = DEFAULT_IDLE_STATES,
+        active_states: Iterable[AgentState] = DEFAULT_ACTIVE_STATES,
+        event_types: Iterable[str] = DEFAULT_WAKE_EVENT_TYPES,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> dict[str, list[str]]:
+        """Consumer-side lifecycle wiring: park idle agents, wake busy ones.
+
+        Single entry point for an orchestrator / scheduler tick that holds a
+        snapshot of live agent states (e.g. taken from ``AgentRegistry``).
+        Agents in an *idle* state that are not parked yet are parked
+        (subscribing to ``event_types``); parked agents that returned to an
+        *active* state are woken. Agents in other (transitional) states are
+        left untouched.
+
+        Repeated syncs with unchanged states are no-ops: an agent that is
+        already parked is never re-parked, so its subscriptions and
+        ``parked_at`` timestamp are not churned. Wake semantics, async-handler
+        rejection, and emission behavior are exactly those of :meth:`park`
+        and :meth:`wake`.
+
+        Args:
+            states: Mapping of agent_id → current ``AgentState`` (raw value
+                strings are accepted and coerced).
+            wake: Sync wake handler passed through to :meth:`park` for newly
+                parked agents (ignored for agents already parked).
+            idle_states: States that qualify for parking.
+            active_states: States that qualify for waking.
+            event_types: Wake topics for newly parked agents.
+            metadata: Optional context stored on newly parked entries.
+
+        Returns:
+            ``{"parked": [...], "woken": [...]}`` — IDs changed by this sync.
+        """
+        idle = frozenset(_coerce_state(s) for s in idle_states)
+        active = frozenset(_coerce_state(s) for s in active_states)
+
+        parked: list[str] = []
+        woken: list[str] = []
+        for agent_id, raw in states.items():
+            state = _coerce_state(raw)
+            if state in idle and not self.is_parked(agent_id):
+                self.park(agent_id, event_types, wake, metadata)
+                parked.append(agent_id)
+            elif state in active and self.is_parked(agent_id):
+                if self.wake(agent_id):
+                    woken.append(agent_id)
+        return {"parked": parked, "woken": woken}
 
     async def on_event(self, event: Event) -> list[str]:
         """Dispatch an event to all matching parked agents (manual mode).

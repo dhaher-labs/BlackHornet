@@ -8,7 +8,7 @@ import asyncio
 import unittest
 
 from src.colony_types.events import Event
-from src.colony_types.models import EventType
+from src.colony_types.models import AgentState, EventType
 from src.core.event_bus import EventBus
 from src.swarm.parked_agents import ParkedAgentRegistry
 
@@ -333,6 +333,114 @@ class TestParkedAgentsEmissions(unittest.TestCase):
 
         rec = _run(scenario())
         self.assertEqual(len(rec.events), 1)  # wake handler ran
+
+
+class TestParkedAgentsSync(unittest.TestCase):
+    """sync_from_states: consumer-side park-idle / wake-busy wiring."""
+
+    def setUp(self):
+        self.bus = EventBus()
+        _run(self.bus.start())
+
+    def tearDown(self):
+        _run(self.bus.stop())
+
+    def test_sync_parks_idle_only(self):
+        reg = ParkedAgentRegistry()
+        rec = _Recorder()
+        report = reg.sync_from_states(
+            {
+                "a": AgentState.SUSPENDED,
+                "b": AgentState.ACTIVE,
+                "c": AgentState.TERMINATED,
+            },
+            rec,
+        )
+        self.assertEqual(report, {"parked": ["a"], "woken": []})
+        self.assertTrue(reg.is_parked("a"))
+        self.assertEqual(len(reg), 1)
+        # Parking never invokes the wake handler.
+        self.assertEqual(rec.events, [])
+
+    def test_sync_wakes_parked_agent_back_to_active(self):
+        reg = ParkedAgentRegistry()
+        rec = _Recorder()
+        reg.park("a", ["task_assigned"], rec)
+
+        report = reg.sync_from_states({"a": AgentState.ACTIVE}, rec)
+
+        self.assertEqual(report, {"parked": [], "woken": ["a"]})
+        self.assertFalse(reg.is_parked("a"))
+        self.assertEqual(len(rec.events), 1)
+        self.assertIsNone(rec.events[0])  # manual wake carries no event
+
+    def test_sync_is_idempotent_no_churn(self):
+        reg = ParkedAgentRegistry()
+        rec = _Recorder()
+        states = {"a": AgentState.WAITING, "b": AgentState.SUSPENDED}
+
+        first = reg.sync_from_states(states, rec)
+        entry_before = reg.get("a")
+        second = reg.sync_from_states(states, rec)
+
+        self.assertEqual(first["parked"], ["a", "b"])
+        self.assertEqual(second, {"parked": [], "woken": []})
+        self.assertIs(reg.get("a"), entry_before)  # same entry, not re-parked
+        self.assertEqual(entry_before.parked_at, reg.get("a").parked_at)
+
+    def test_sync_transitional_states_untouched(self):
+        reg = ParkedAgentRegistry()
+        rec = _Recorder()
+        report = reg.sync_from_states(
+            {
+                "a": AgentState.REGISTERED,
+                "b": AgentState.INITIALIZING,
+                "c": AgentState.DRAINING,
+                "d": AgentState.COMPACTING,
+            },
+            rec,
+        )
+        self.assertEqual(report, {"parked": [], "woken": []})
+        self.assertEqual(len(reg), 0)
+
+    def test_sync_accepts_raw_state_strings(self):
+        reg = ParkedAgentRegistry()
+        rec = _Recorder()
+        report = reg.sync_from_states(
+            {"a": "suspended", "b": "waiting"}, rec
+        )
+        self.assertEqual(report["parked"], ["a", "b"])
+
+    def test_sync_rejects_unknown_state(self):
+        reg = ParkedAgentRegistry()
+        with self.assertRaises(ValueError):
+            reg.sync_from_states({"a": "hibernating"}, _Recorder())
+
+    def test_sync_default_wake_topics_and_metadata(self):
+        bus = self.bus
+        reg = ParkedAgentRegistry(bus=bus)
+        rec = _Recorder()
+        reg.sync_from_states(
+            {"a": AgentState.WAITING}, rec, metadata={"reason": "idle"}
+        )
+
+        entry = reg.get("a")
+        self.assertEqual(
+            entry.event_types, frozenset({"task_submitted", "task_completed"})
+        )
+        self.assertEqual(entry.metadata, {"reason": "idle"})
+
+        # Bus-driven wake through the default topics (closed loop §5).
+        _run(bus.publish_event(Event(event_type=EventType.TASK_SUBMITTED)))
+        self.assertEqual(len(rec.events), 1)
+        self.assertFalse(reg.is_parked("a"))
+
+    def test_sync_wake_on_ready_state(self):
+        reg = ParkedAgentRegistry()
+        rec = _Recorder()
+        reg.park("a", ["*"], rec)
+        report = reg.sync_from_states({"a": AgentState.READY}, rec)
+        self.assertEqual(report["woken"], ["a"])
 
 
 if __name__ == "__main__":
