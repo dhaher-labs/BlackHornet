@@ -7,7 +7,7 @@ Fetches OHLCV, economic calendar, market overview
 import json
 import logging
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("blackhornet.MarketData")
 
@@ -23,7 +23,7 @@ class MarketDataTool:
     }
 
     # Symbol mapping for different providers
-    SYMBOL_MAP = {
+    SYMBOL_MAP: Dict[str, Dict[str, Optional[str]]] = {
         "XAUUSD": {"yfinance": "GC=F", "mt5": "XAUUSD", "binance": "XAUUSDT"},
         "EURUSD": {"yfinance": "EURUSD=X", "mt5": "EURUSD", "binance": "EURUSDT"},
         "GBPUSD": {"yfinance": "GBPUSD=X", "mt5": "GBPUSD", "binance": "GBPUSDT"},
@@ -94,8 +94,10 @@ class MarketDataTool:
         try:
             import yfinance as yf  # type: ignore[import-not-found]
 
-            yf_symbol = self.SYMBOL_MAP.get(symbol, {}).get("yfinance", symbol)
-            yf_interval = self.INTERVAL_MAP.get(interval, {}).get("yfinance", "1h")
+            map_entry = self.SYMBOL_MAP.get(symbol) or {}
+            yf_symbol = map_entry.get("yfinance", symbol)
+            interval_entry = self.INTERVAL_MAP.get(interval) or {}
+            yf_interval = interval_entry.get("yfinance", "1h")
 
             # yfinance has limits on intraday data range
             period = "60d"
@@ -119,7 +121,7 @@ class MarketDataTool:
             # Take last N bars
             df = df.tail(bars)
 
-            data_rows = []
+            data_rows: list[dict[str, Any]] = []
             for idx, row in df.iterrows():
                 open_val = float(row["Open"])
                 high_val = float(row["High"])

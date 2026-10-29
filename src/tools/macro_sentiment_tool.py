@@ -7,6 +7,7 @@ Risk-on/off regime detection, sentiment analysis
 import json
 import logging
 from datetime import datetime
+from typing import Any, Dict
 
 logger = logging.getLogger("blackhornet.MacroSentiment")
 
@@ -32,7 +33,7 @@ class MacroSentimentTool:
                 "US10Y": "^TNX",   # Yields (context)
             }
 
-            results = {}
+            results: Dict[str, Dict[str, Any]] = {}
             for name, sym in proxies.items():
                 try:
                     ticker = yf.Ticker(sym)
