@@ -100,9 +100,13 @@ class TradingViewTool(MCPTool):
                 },
                 "id": 1,
             }
-            self._server.stdin.write(json.dumps(payload) + "\n")
-            self._server.stdin.flush()
-            line = self._server.stdout.readline()
+            stdin = self._server.stdin
+            stdout = self._server.stdout
+            if stdin is None or stdout is None:
+                raise RuntimeError("TradingView MCP server pipes unavailable")
+            stdin.write(json.dumps(payload) + "\n")
+            stdin.flush()
+            line = stdout.readline()
             result = json.loads(line).get("result", {})
             return {"symbol": symbol, "indicators": result, "chart": {}, "error": ""}
         except Exception as exc:

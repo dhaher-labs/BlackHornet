@@ -54,10 +54,14 @@ class MCPRegistry:
             self._processes[server_name] = proc
 
             req = json.dumps({"jsonrpc": "2.0", "method": "tools/list", "id": 1})
-            proc.stdin.write(req + "\n")
-            proc.stdin.flush()
+            stdin = proc.stdin
+            stdout = proc.stdout
+            if stdin is None or stdout is None:
+                raise RuntimeError("MCP server pipes unavailable")
+            stdin.write(req + "\n")
+            stdin.flush()
 
-            resp = proc.stdout.readline()
+            resp = stdout.readline()
             result = json.loads(resp)
             tools = []
             for t in result.get("result", {}).get("tools", []):
