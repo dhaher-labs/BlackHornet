@@ -194,6 +194,8 @@ class RingPSOSwarm:
 
     def _neighborhood_best(self, particle: Particle) -> np.ndarray:
         """Find best particle in neighborhood"""
+        if self.state is None:
+            raise ValueError("Swarm not initialized. Call initialize() first.")
         best_fitness = particle.personal_best_fitness
         best_pos = particle.personal_best.copy()
         for ni in particle.neighbors:
@@ -222,10 +224,11 @@ class RingPSOSwarm:
         """Run full optimization"""
         best_fitness_history = []
         no_improve = 0
+        state: Optional[SwarmState] = self.state
 
         for i in range(n_iterations):
-            self.step()
-            best_fitness_history.append(self.state.global_best_fitness)
+            state = self.step()
+            best_fitness_history.append(state.global_best_fitness)
 
             if len(best_fitness_history) > 1:
                 if abs(best_fitness_history[-1] - best_fitness_history[-2]) < 1e-8:
@@ -237,4 +240,6 @@ class RingPSOSwarm:
                 logger.info(f"Early stopping at iteration {i} (no improvement for {early_stop_patience})")
                 break
 
-        return self.state
+        if state is None:
+            raise ValueError("Swarm not initialized. Call initialize() first.")
+        return state

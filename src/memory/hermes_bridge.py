@@ -53,9 +53,10 @@ class HermesMemoryBridge:
         self.pipeline = pipeline or GraphifyPipeline()
 
         self._records: Dict[str, HermesMemoryRecord] = {}
-        self._hermes_home = Path(
-            hermes_home or os.getenv("HERMES_HOME", str(Path.home() / ".hermes"))
-        )
+        hermes_home_env = os.getenv("HERMES_HOME")
+        if hermes_home_env is None:
+            hermes_home_env = str(Path.home() / ".hermes")
+        self._hermes_home = Path(hermes_home or hermes_home_env)
         self._hermes_home.mkdir(parents=True, exist_ok=True)
 
         self._bridge_path = self._hermes_home / "bridge_store.json"

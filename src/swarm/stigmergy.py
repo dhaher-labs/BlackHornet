@@ -73,7 +73,7 @@ class PheromoneField:
 
     def deposit(self, position: Tuple[float, ...], type: PheromoneType,
                 intensity: float = 1.0, radius: float = 0.5,
-                depositor_id: str = "unknown", metadata: dict = None) -> Pheromone:
+                depositor_id: str = "unknown", metadata: Optional[dict] = None) -> Pheromone:
         """Agent deposits a pheromone at a position"""
         if len(self.pheromones) >= self.max_pheromones:
             oldest = min(self.pheromones, key=lambda p: p.timestamp)
@@ -209,7 +209,7 @@ class PheromoneField:
         total = 0.0
         for ptype, pheromones in sensed.items():
             for ph in pheromones:
-                distance = np.linalg.norm(np.array(position) - np.array(ph.position))
+                distance = float(np.linalg.norm(np.array(position) - np.array(ph.position)))
                 total += ph.intensity / max(distance, 0.1)
         return total
 
