@@ -47,13 +47,25 @@ __all__ = [
     "AgentContractManager", "AgentContract", "SuccessCriteria", "ContractStatus", "ContractViolation",
     "EvolutionBridge",
 ]
-from src.core.ast_sanitizer import SecurityViolationException, SanitizeResult, sanitize, is_allowed
+# Explicit re-exports (same-name alias, PEP 484): public surface for
+# `from src.core import X` consumers; keeps ruff F401 clean.
+from src.core.ast_sanitizer import SecurityViolationException as SecurityViolationException
+from src.core.ast_sanitizer import SanitizeResult as SanitizeResult
+from src.core.ast_sanitizer import sanitize as sanitize
+from src.core.ast_sanitizer import is_allowed as is_allowed
 
-from src.core.consensus_engine import ConsensusEngine, ConsensusResult, JudgeRound, ProposalStatus
+from src.core.consensus_engine import ConsensusEngine as ConsensusEngine
+from src.core.consensus_engine import ConsensusResult as ConsensusResult
+from src.core.consensus_engine import JudgeRound as JudgeRound
+from src.core.consensus_engine import ProposalStatus as ProposalStatus
 
-from src.core.debate_arena import DebateArena
+from src.core.debate_arena import DebateArena as DebateArena
 
-from src.core.workforce.agent_factory import AgentFactory, AgentSpec, CreatedAgent
-from src.core.workforce.prompter import DynamicPrompter
+from src.core.workforce.agent_factory import AgentFactory as AgentFactory
+from src.core.workforce.agent_factory import AgentSpec as AgentSpec
+from src.core.workforce.agent_factory import CreatedAgent as CreatedAgent
+from src.core.workforce.prompter import DynamicPrompter as DynamicPrompter
 
-from src.core.workforce.task_planner import TaskPlanner, Plan, SubTask
+from src.core.workforce.task_planner import TaskPlanner as TaskPlanner
+from src.core.workforce.task_planner import Plan as Plan
+from src.core.workforce.task_planner import SubTask as SubTask
