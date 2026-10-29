@@ -5,39 +5,48 @@
 | Field | Value |
 |-------|-------|
 | Name | BlackHornet |
-| Type | Multi-agent AI colony with autonomous Omega Engine |
-| Version | 5.0.0 |
+| Type | Autonomous agent colony platform — Python core + Rust runtime workspace (strangler-fig) |
+| Version | 7.0.0 |
 | Python | >=3.11 |
+| Rust | >=1.85, edition 2024 (`rust/` workspace; infinity pinned `=0.2.0`) |
 | License | MIT |
 | Owner | Dhaher Labs |
 
-## 2. Architecture Summary
+## 2. Architecture Summary (v7 reality)
 
 ```
 src/
-├── agents/          9 core agents + audit/specialists subdirectories
-├── omega/           Omega Engine (autonomous loop, SCS, evolution)
-├── tools/           21 trading tools (risk, execution, kill switch, etc.)
-├── harness/         LangGraph-compatible agent framework (~100 files)
-├── core/            Core framework (event bus, circuit breaker, skill crystallizer)
-├── memory/          Memory system (semantic, vector, episodic)
-├── graph/           Knowledge graph
-├── api/             Starlette REST API
-├── mcp/             MCP protocol implementation
-├── colony/          Colony evolution and orchestration
-├── thinking/        Cognition modules
-├── swarm/           PSO, ABC, stigmergy orchestration
-├── bh_types/        Unified type system (Pydantic v2)
+├── agents/          agent implementations (browser, coder, colony, executor, babyagi, …)
+├── auto_discovery/  capability discovery
+├── bh_types/        ecosystem-surface types (canonical EcosystemState)
+├── browser/         browser agent
+├── colony/          ECOSYSTEM CORE — orchestrator, radar (UDP), mesh bus, queen, jeumpa_brain
+├── colony_types/    canonical core types (duality with bh_types — docs/11-adr/ADR-002)
 ├── config/          Pydantic settings
-├── security/        Security primitives
-└── integration/     External integrations
+├── core/            consensus, debate arena, ast_sanitizer, self-healing, llm_provider,
+│                    circuit_breaker, skill_crystallizer
+├── graph/           SQLite property graph + session recorder
+├── integration/     unified_launcher (bh-colony entrypoint)
+├── memory/          SQLite+FTS5 7-module memory system + MemoryFederation
+├── omega/           governance loop + council (EXPERIMENTAL — simulated debate)
+├── plugins/, sandbox/, security/, thinking/, swarm/, tools/, ui/
+├── hermes_quant.py  paper-trading main loop (L1–L5)
+└── immortal_daemon.py, watchdog.py, swarm_protocol.py, colony_bridge.py,
+    memory_bridge.py, upgrade_loop.py, user_alignment.py   # ops line
 
-skills/              22 agent skill packages
-tests/               pytest test suite
-scripts/             Infrastructure scripts
-docs/                Documentation (VISION, PRD, ARCHITECTURE, SPEC, ADRs)
-deploy/              Systemd service files
+rust/                Phase 1–5 workspace: bh-rtd daemon, bh-bridge-uds (BH bridge
+                     protocol v1 over UDS), bh-mcp-bridge (Infinity wiring);
+                     BH_RUNTIME=python stays the default (docs/ARCHITECTURE.md §4.1)
+tests/               pytest suite — the hard gate for every change
+scripts/             infrastructure scripts (incl. gen_arch_graph.py)
+docs/                numbered doc tree; canonical architecture: docs/ARCHITECTURE.md;
+                     generated dependency graph: docs/02-arch/MODULE_GRAPH.md
+deploy/              service files; Dockerfile / docker-compose.yml for containers
 ```
+
+Pre-v7 lineages (`harness/`, `api/`, `mcp/`, `skills/`, 102 template agents, Node
+`.mjs` islands) were **removed by the v7 rebuild** — do not reintroduce them;
+per-item rationale lives in `PLAN.md` §2 and `docs/ARCHITECTURE.md` §8.
 
 ## 3. Build and Run
 
@@ -48,17 +57,20 @@ pip install -e .
 # Run unified colony launcher
 bh-colony
 
-# Run Omega CLI
+# Run Omega CLI (experimental, simulated loop)
 bh-omega
 
-# Run trading subsystem
+# Run trading subsystem (paper-only)
 python -m src.hermes_quant
 
-# Run tests
-pytest tests/
+# Run tests (the gate)
+pytest tests/ -q
 
 # Run tests with coverage
 pytest tests/ --cov=src
+
+# Rust workspace (Phase 1–5)
+cd rust && cargo build && cargo test
 ```
 
 ## 4. Code Conventions
@@ -90,14 +102,21 @@ logger = logging.getLogger("blackhornet.ModuleName")
 - No comments that explain WHAT the code does
 - No comments for hypothetical future needs
 
+### Docs hygiene
+- `docs/02-arch/MODULE_GRAPH.md` is GENERATED: after any structural change run
+  `python3 scripts/gen_arch_graph.py` and commit the result; do not edit by hand
+- Architecture claims go in `docs/ARCHITECTURE.md` under the honesty rules
+  (simulated components are labeled simulated; no feature described as more than it is)
+
 ## 5. Key Patterns
 
 - **Risk limits** are enforced in `src/tools/risk_officer_tool.py` -- never override these
-- **Kill switch** is fail-closed -- blocks by default when uncertain
+- **Kill switch** (`src/tools/kill_switch_tool.py`) is fail-closed -- blocks by default when uncertain
 - **SharedState** (`src/tools/shared_state.py`) is the single source of truth for runtime state
-- **Trading tools** follow a layered architecture (L1 data through L5 execution)
-- **Omega Engine** runs an autonomous self-improvement loop -- do not interrupt without reason
-- **Circuit breaker** in `src/core/` prevents cascading failures
+- **Trading tools** follow a layered architecture (L1 data through L5 execution) and are **PAPER-ONLY**
+- **Omega Engine** runs an autonomous self-improvement loop -- experimental; the plan→execute loop and council votes are simulated
+- **Circuit breaker** (`src/core/circuit_breaker.py`) prevents cascading failures
+- **Type duality**: `colony_types/` = canonical core, `bh_types/` = ecosystem surface (ADR-002) — do not merge them casually
 
 ## 6. Security Rules
 
@@ -109,12 +128,11 @@ logger = logging.getLogger("blackhornet.ModuleName")
 
 ## 7. Git Workflow
 
-- Commit format: `type: description` (feat, fix, docs, chore, test)
+- Commit format: `type(scope): description` (feat, fix, docs, chore, test)
 - Atomic commits: one logical change per commit
-- Feature branches from `main`
 - No force-push to shared branches
 - Tag releases with semantic versioning (MAJOR.MINOR.PATCH)
-- Tests must pass before merging
+- Tests must pass before merging (`pytest tests/ -q`)
 
 ## 8. What NOT to Do
 
@@ -125,3 +143,4 @@ logger = logging.getLogger("blackhornet.ModuleName")
 - Don't mix refactoring with feature work in the same commit
 - Don't suppress warnings or ignore test failures
 - Don't add new dependencies without checking if existing ones cover the need
+- Don't describe simulated components as real (repo bans "fake success" patterns)
