@@ -17,6 +17,7 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import time
@@ -396,6 +397,3 @@ class IntelligenceBridge:
                     )
         except Exception as e:
             logger.debug("intel_lifecycle_log_error err=%s", e)
-
-
-import asyncio

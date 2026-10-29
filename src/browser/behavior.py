@@ -1,5 +1,7 @@
-from __future__ import annotations
 """Human-like behavior simulation for browser automation."""
+
+from __future__ import annotations
+
 import logging
 
 import random
