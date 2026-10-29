@@ -293,8 +293,9 @@ class PlannerAgent(BaseAgent):
             subtasks: list[ColonyTask] = []
             for i, item in enumerate(items):
                 if isinstance(item, dict):
+                    raw_title = item.get("title", item.get("name", f"Subtask {i + 1}"))
                     subtasks.append(ColonyTask(
-                        title=item.get("title", item.get("name", f"Subtask {i + 1}")),
+                        title=str(raw_title) if raw_title is not None else f"Subtask {i + 1}",
                         description=item.get("description", ""),
                         priority=item.get("priority", i + 1),
                         status="pending",
