@@ -18,7 +18,7 @@ from enum import Enum
 try:
     import numpy as np
 except ImportError:
-    from ._numpy_shim import np
+    from ._numpy_shim import np  # type: ignore[no-redef]
 import time
 import logging
 from collections import defaultdict
@@ -226,8 +226,8 @@ class PheromoneField:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get pheromone field statistics"""
-        type_counts = defaultdict(int)
-        type_intensities = defaultdict(float)
+        type_counts: Dict[str, int] = defaultdict(int)
+        type_intensities: Dict[str, float] = defaultdict(float)
         for ph in self.pheromones:
             type_counts[ph.type.value] += 1
             type_intensities[ph.type.value] += ph.intensity

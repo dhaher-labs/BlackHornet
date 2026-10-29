@@ -532,7 +532,7 @@ class EcosystemOrchestrator:
             try:
                 status = await self.full_status()
                 lc = self._lifecycle_recorder
-                events = await lc.get_history(limit=500) if lc else []
+                events: list = await lc.get_history(limit=500) if lc else []
 
                 await self._session_exporter.export_full(
                     status=status,

@@ -177,7 +177,7 @@ except ImportError:
     from dataclasses import dataclass, field
 
     @dataclass
-    class ColonySettings:
+    class ColonySettings:  # type: ignore[no-redef]
         heartbeat_interval_ms: int = 30_000
         max_agents: int = 50
         default_autonomy: int = 1
@@ -189,7 +189,7 @@ except ImportError:
         health_score_threshold: float = 0.5
 
     @dataclass
-    class MCPSettings:
+    class MCPSettings:  # type: ignore[no-redef]
         server_port: int = 8081
         sse_port: int = 8080
         max_connections: int = 1000
@@ -203,7 +203,7 @@ except ImportError:
         supported_transports: List[str] = field(default_factory=lambda: ["stdio", "sse", "streamable-http"])
 
     @dataclass
-    class MemorySettings:
+    class MemorySettings:  # type: ignore[no-redef]
         page_size: int = 4096
         compaction_threshold: float = 0.8
         working_set_size: int = 1024
@@ -219,7 +219,7 @@ except ImportError:
         compaction_interval_s: int = 300
 
     @dataclass
-    class APISettings:
+    class APISettings:  # type: ignore[no-redef]
         host: str = "0.0.0.0"
         port: int = 8000
         workers: int = 4
@@ -236,7 +236,7 @@ except ImportError:
         ws_max_connections: int = 100
 
     @dataclass
-    class ChannelSettings:
+    class ChannelSettings:  # type: ignore[no-redef]
         telegram_bot_token: str = ""
         telegram_api_url: str = "https://api.telegram.org"
         telegram_webhook_url: str = ""
@@ -253,7 +253,7 @@ except ImportError:
         slack_app_token: str = ""
 
     @dataclass
-    class SecuritySettings:
+    class SecuritySettings:  # type: ignore[no-redef]
         audit_level: str = "full"
         audit_storage: str = "memory"
         audit_file_path: str = "/var/log/multicolony/audit.jsonl"
@@ -266,7 +266,7 @@ except ImportError:
         approval_timeout_s: int = 300
 
     @dataclass
-    class Settings:
+    class Settings:  # type: ignore[no-redef]
         app_name: str = "ai-multicolony"
         version: str = "0.2.0"
         debug: bool = False

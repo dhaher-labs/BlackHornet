@@ -302,7 +302,7 @@ class IntelligenceBridge:
         return providers
 
     def get_stats(self) -> dict[str, Any]:
-        jeumpa_stats = {}
+        jeumpa_stats: dict = {}
         if self._jeumpa:
             jeumpa_stats = self._jeumpa.get_stats()
         return {

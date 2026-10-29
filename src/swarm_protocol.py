@@ -232,7 +232,7 @@ class SwarmProtocol:
 
     def discover_agents(self) -> List[Dict]:
         """Discover all agents in the swarm."""
-        agents = []
+        agents: List[Dict] = []
         if not self.swarm_dir.exists():
             return agents
 
@@ -298,7 +298,7 @@ class SwarmProtocol:
     def get_messages(self, for_agent: str = None) -> List[Dict]:
         """Get messages addressed to this agent (or all)."""
         for_agent = for_agent or self.identity.agent_id
-        messages = []
+        messages: List[Dict] = []
         if not self.messages_dir.exists():
             return messages
 

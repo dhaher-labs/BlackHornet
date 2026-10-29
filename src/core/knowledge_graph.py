@@ -46,7 +46,7 @@ class KnowledgeGraph:
         self._save()
 
     def query(self, entity_id: str, max_depth: int = 2) -> Dict[str, Any]:
-        result = {
+        result: Dict[str, Any] = {
             "entity": None,
             "relations": [],
             "related_entities": [],

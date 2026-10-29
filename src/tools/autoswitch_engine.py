@@ -23,7 +23,7 @@ class ProviderHealth:
         self.last_failure = None
         self.cooldown_until = None
         self.avg_latency_ms = 0.0
-        self._latencies = []
+        self._latencies: list[float] = []
 
     @property
     def score(self) -> float:
