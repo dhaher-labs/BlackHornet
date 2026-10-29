@@ -39,11 +39,11 @@ class ColonyHealthMonitor:
         self._running = False
         self._monitor_task: Optional[asyncio.Task] = None
 
-    def wire_radar(self, radar: ColonyRadar) -> None:
-        """Wire Radar to health monitor."""
+    def wire_radar(self, radar: Optional[ColonyRadar]) -> None:
+        """Wire Radar to health monitor (None to unregister)."""
         self._radar = radar
         # Register all peer IDs for monitoring
-        if radar.peers:
+        if radar is not None and radar.peers:
             for peer_id in radar.peers.keys():
                 self._detector.reset(peer_id)
 

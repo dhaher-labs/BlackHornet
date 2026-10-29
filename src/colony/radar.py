@@ -169,9 +169,13 @@ class ColonyRadar:
     async def _lan_listener(self) -> None:
         await self._setup_socket()
         loop = asyncio.get_event_loop()
+        sock = self._sock
+        if sock is None:
+            logger.warning("radar socket unavailable; listener exiting")
+            return
         while self._running:
             try:
-                data, addr = await loop.sock_recvfrom(self._sock, 65535)
+                data, addr = await loop.sock_recvfrom(sock, 65535)
                 await self._handle_signal(data, addr)
             except asyncio.CancelledError:
                 break
@@ -288,12 +292,16 @@ class ColonyRadar:
         except ImportError:
             logger.warning("aiohttp not installed; rendezvous disabled")
             return
-        url = self._config.rendezvous_url.rstrip("/")
+        rendezvous_url = self._config.rendezvous_url
+        if not rendezvous_url:
+            logger.info("no rendezvous_url configured; rendezvous disabled")
+            return
+        url = rendezvous_url.rstrip("/")
         while self._running:
             try:
                 async with aiohttp.ClientSession() as session:
                     payload = model_dump(self._config.identity)
-                    async with session.post(f"{url}/colonies", json=payload, timeout=10) as resp:
+                    async with session.post(f"{url}/colonies", json=payload, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                         if resp.status == 200:
                             data = await resp.json()
                             for entry in data.get("colonies", []):
@@ -321,7 +329,7 @@ class ColonyRadar:
         for peer_url in self._config.static_peers:
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(f"{peer_url}/api/v1/radar/identity", timeout=10) as resp:
+                    async with session.get(f"{peer_url}/api/v1/radar/identity", timeout=aiohttp.ClientTimeout(total=10)) as resp:
                         if resp.status == 200:
                             data = await resp.json()
                             peer = ColonyIdentity(**data)
