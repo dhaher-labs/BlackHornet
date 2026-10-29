@@ -837,7 +837,7 @@ class blackhornet:
             f"AGENTS.md: Active"
         )
 
-    async def generate_response(self, prompt: str, force_provider: str = None) -> str:
+    async def generate_response(self, prompt: str, force_provider: Optional[str] = None) -> str:
 
         messages = [
             {"role": "system", "content": AGENTS_SYSTEM_PROMPT},
@@ -849,7 +849,7 @@ class blackhornet:
 
         messages.append({"role": "user", "content": prompt})
 
-        providers_to_try = []
+        providers_to_try: list[tuple[str, Optional[str], str, str]] = []
 
         if force_provider == "nvidia" or force_provider is None:
             if NVIDIA_API_KEY:
@@ -866,6 +866,11 @@ class blackhornet:
                 providers_to_try.append(("opencode", self.get_opencode_key(), OPENCODE_API_BASE, "opencode"))
 
         for provider_name, api_key, api_base, model in providers_to_try:
+            if api_key is None:
+                # Unreachable in practice: every append is guarded by a
+                # key-presence check; kept so the tuple type stays honest.
+                logger.warning(f"Skipping {provider_name}: no API key")
+                continue
             try:
                 logger.info(f"Trying provider: {provider_name} with model: {model}")
                 response_text = await self.call_api(api_key, api_base, model, messages)
