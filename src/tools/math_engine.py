@@ -62,7 +62,7 @@ class MathEngine:
     @staticmethod
     def rsi(closes: List[float], period: int = 14) -> List[Optional[float]]:
         """RSI using Wilder's smoothing method"""
-        result = [None] * len(closes)
+        result: List[Optional[float]] = [None] * len(closes)
         if len(closes) < period + 1:
             return result
 
@@ -97,19 +97,23 @@ class MathEngine:
         ema_fast = MathEngine.ema(closes, fast)
         ema_slow = MathEngine.ema(closes, slow)
 
-        macd_line = [None] * len(closes)
+        macd_line: List[Optional[float]] = [None] * len(closes)
         for i in range(len(closes)):
-            if ema_fast[i] is not None and ema_slow[i] is not None:
-                macd_line[i] = ema_fast[i] - ema_slow[i]
+            f = ema_fast[i]
+            s = ema_slow[i]
+            if f is not None and s is not None:
+                macd_line[i] = f - s
 
         # Signal line = EMA of MACD values
-        macd_values = [v if v is not None else 0 for v in macd_line]
+        macd_values: List[float] = [v if v is not None else 0 for v in macd_line]
         signal_line = MathEngine.ema(macd_values, signal)
 
-        histogram = [None] * len(closes)
+        histogram: List[Optional[float]] = [None] * len(closes)
         for i in range(len(closes)):
-            if macd_line[i] is not None and signal_line[i] is not None:
-                histogram[i] = macd_line[i] - signal_line[i]
+            m = macd_line[i]
+            g = signal_line[i]
+            if m is not None and g is not None:
+                histogram[i] = m - g
 
         return {"macd": macd_line, "signal": signal_line, "histogram": histogram}
 
