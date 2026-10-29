@@ -128,12 +128,12 @@ class LLMScanner:
         Returns:
             List of :class:`ProviderInfo` results, one per provider.
         """
-        logger.info("llm_scan_started", provider_count=len(_PROVIDERS))
+        logger.info("llm_scan_started provider_count=%s", len(_PROVIDERS))
         results = await asyncio.to_thread(self._discover_all_sync)
         logger.info(
-            "llm_scan_completed",
-            total=len(results),
-            available=sum(1 for r in results if r.is_available),
+            "llm_scan_completed total=%s available=%s",
+            len(results),
+            sum(1 for r in results if r.is_available),
         )
         return results
 
@@ -165,9 +165,9 @@ class LLMScanner:
         try:
             with open(filepath, "w") as f:
                 json.dump({"providers": data}, f, indent=2)
-            logger.debug("llm_scan_saved", path=filepath, count=len(data))
+            logger.debug("llm_scan_saved path=%s count=%s", filepath, len(data))
         except OSError as exc:
-            logger.error("llm_scan_save_failed", path=filepath, error=str(exc))
+            logger.error("llm_scan_save_failed path=%s error=%s", filepath, exc)
 
     def load(self, path: str = "providers_llm.json") -> list[ProviderInfo]:
         """Load previously persisted scan results.
@@ -181,7 +181,7 @@ class LLMScanner:
         """
         filepath = os.path.join(self._data_dir, path)
         if not os.path.isfile(filepath):
-            logger.debug("llm_scan_file_not_found", path=filepath)
+            logger.debug("llm_scan_file_not_found path=%s", filepath)
             return []
 
         try:
@@ -193,16 +193,16 @@ class LLMScanner:
                 if isinstance(entry, dict):
                     results.append(ProviderInfo(**entry))
             logger.debug(
-                "llm_scan_loaded",
-                path=filepath,
-                count=len(results),
+                "llm_scan_loaded path=%s count=%s",
+                filepath,
+                len(results),
             )
             return results
         except (json.JSONDecodeError, OSError, TypeError) as exc:
             logger.warning(
-                "llm_scan_load_failed",
-                path=filepath,
-                error=str(exc),
+                "llm_scan_load_failed path=%s error=%s",
+                filepath,
+                exc,
             )
             return []
 
@@ -264,7 +264,7 @@ class LLMScanner:
 
         if not api_key:
             info.error = f"Missing env var: {api_key_env}"
-            logger.debug("llm_skip_no_key", provider=name, env_var=api_key_env)
+            logger.debug("llm_skip_no_key provider=%s env_var=%s", name, api_key_env)
             return info
 
         model = models[0] if models else "unknown"
@@ -282,20 +282,20 @@ class LLMScanner:
             info.is_available = True
             info.latency_ms = round(elapsed_ms, 1)
             logger.debug(
-                "llm_provider_ok",
-                provider=name,
-                model=model,
-                latency_ms=info.latency_ms,
+                "llm_provider_ok provider=%s model=%s latency_ms=%s",
+                name,
+                model,
+                info.latency_ms,
             )
         except Exception as exc:
             elapsed_ms = (time.time() - start) * 1000.0
             info.latency_ms = round(elapsed_ms, 1)
             info.error = str(exc)
             logger.warning(
-                "llm_provider_failed",
-                provider=name,
-                error=info.error,
-                latency_ms=info.latency_ms,
+                "llm_provider_failed provider=%s error=%s latency_ms=%s",
+                name,
+                info.error,
+                info.latency_ms,
             )
 
         return info

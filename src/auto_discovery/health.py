@@ -88,7 +88,7 @@ class HealthChecker:
             return
         self._running = True
         self._task = asyncio.create_task(self._health_loop())
-        logger.info("health_checker_started", interval_hours=self._interval / 3600.0)
+        logger.info("health_checker_started interval_hours=%s", self._interval / 3600.0)
 
     async def stop(self) -> None:
         """Stop the background health check loop."""
@@ -149,7 +149,7 @@ class HealthChecker:
         if not api_key:
             status.status = "down"
             status.consecutive_failures = self._get_failures(name) + 1
-            logger.warning("health_no_api_key", provider=name, env_var=api_key_env)
+            logger.warning("health_no_api_key provider=%s env_var=%s", name, api_key_env)
             self._health[name] = status
             return status
 
@@ -171,16 +171,16 @@ class HealthChecker:
 
             if status.status != "ok":
                 logger.warning(
-                    "health_degraded",
-                    provider=name,
-                    latency_ms=status.latency_ms,
-                    status=status.status,
+                    "health_degraded provider=%s latency_ms=%s status=%s",
+                    name,
+                    status.latency_ms,
+                    status.status,
                 )
             else:
                 logger.debug(
-                    "health_ok",
-                    provider=name,
-                    latency_ms=status.latency_ms,
+                    "health_ok provider=%s latency_ms=%s",
+                    name,
+                    status.latency_ms,
                 )
 
         except Exception as exc:
@@ -197,10 +197,10 @@ class HealthChecker:
                 status.status = "degraded"
 
             logger.warning(
-                "health_failed",
-                provider=name,
-                error=str(exc),
-                consecutive_failures=failures,
+                "health_failed provider=%s error=%s consecutive_failures=%s",
+                name,
+                exc,
+                failures,
             )
 
         self._health[name] = status
@@ -239,7 +239,7 @@ class HealthChecker:
             try:
                 self.check_all()
             except Exception as exc:
-                logger.error("health_loop_error", error=str(exc))
+                logger.error("health_loop_error error=%s", exc)
 
             await asyncio.sleep(self._interval)
 
@@ -320,15 +320,15 @@ class HealthChecker:
                 hs = HealthStatus(**entry)
                 self._health[hs.provider] = hs
             logger.info(
-                "health_state_loaded",
-                path=self._state_file,
-                count=len(self._health),
+                "health_state_loaded path=%s count=%s",
+                self._state_file,
+                len(self._health),
             )
         except (json.JSONDecodeError, OSError, TypeError) as exc:
             logger.warning(
-                "health_state_load_failed",
-                path=self._state_file,
-                error=str(exc),
+                "health_state_load_failed path=%s error=%s",
+                self._state_file,
+                exc,
             )
 
     def _save_state(self) -> None:
@@ -346,30 +346,30 @@ class HealthChecker:
                 })
             with open(self._state_file, "w") as f:
                 json.dump({"health": data}, f, indent=2)
-            logger.debug("health_state_saved", path=self._state_file)
+            logger.debug("health_state_saved path=%s", self._state_file)
         except OSError as exc:
             logger.error(
-                "health_state_save_failed",
-                path=self._state_file,
-                error=str(exc),
+                "health_state_save_failed path=%s error=%s",
+                self._state_file,
+                exc,
             )
 
     def _load_providers(self) -> None:
         """Load provider configurations for health checking."""
         if not os.path.isfile(self._providers_file):
-            logger.debug("no_providers_file", path=self._providers_file)
+            logger.debug("no_providers_file path=%s", self._providers_file)
             return
         try:
             with open(self._providers_file) as f:
                 data = json.load(f)
             self._providers = data.get("providers", data)
             logger.info(
-                "providers_loaded_for_health",
-                count=len(self._providers),
+                "providers_loaded_for_health count=%s",
+                len(self._providers),
             )
         except (json.JSONDecodeError, OSError) as exc:
             logger.warning(
-                "providers_load_failed_for_health",
-                path=self._providers_file,
-                error=str(exc),
+                "providers_load_failed_for_health path=%s error=%s",
+                self._providers_file,
+                exc,
             )
