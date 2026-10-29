@@ -35,7 +35,7 @@ from typing import Optional
 try:
     from dotenv import load_dotenv
 except ImportError:
-    def load_dotenv(path=None):
+    def load_dotenv(path=None):  # type: ignore[misc]
         if path and os.path.exists(path):
             with open(path) as f:
                 for line in f:
