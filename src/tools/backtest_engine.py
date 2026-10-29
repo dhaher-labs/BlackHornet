@@ -60,7 +60,7 @@ class BacktestResult:
 class BacktestEngine:
     """
     Full backtesting engine with execution reality model.
-    
+
     Combines:
     - Quant-Nanggroe-AI: Execution Reality (spread/slippage/latency/partial fill)
     - Vibe-Trading: Performance metrics (Sharpe/Sortino/Calmar/Monte Carlo)
@@ -189,7 +189,7 @@ class BacktestEngine:
                               signal_func, volatility: str = "NORMAL") -> Dict:
         """
         Run full backtest on OHLCV data using a signal function.
-        
+
         signal_func(candle, indicators) -> dict with:
           direction, entry, stop_loss, take_profit, lot_size
         """

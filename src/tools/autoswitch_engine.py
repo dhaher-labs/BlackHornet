@@ -78,7 +78,7 @@ class ProviderHealth:
 class AutoSwitchEngine:
     """
     Intelligent LLM provider failover system.
-    
+
     Source: Quant-Nanggroe-AI v15.2.0 AutoSwitch
     Features:
     - Health monitoring per provider

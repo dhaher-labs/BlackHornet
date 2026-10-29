@@ -76,7 +76,7 @@ class SmartMoneySetup:
 class SMCAgentEnhanced:
     """
     Enhanced Smart Money Concepts agent with proper data models.
-    
+
     Source: AI-MultiColony-Ecosystem SmartMoneyTradingAgent
     Features:
     - Full ICT methodology (BOS, CHoCH, OB, FVG, Liquidity, OTE)

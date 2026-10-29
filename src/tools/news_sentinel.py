@@ -16,7 +16,7 @@ logger = logging.getLogger("blackhornet.NewsSentinel")
 class NewsSentinelTool:
     """
     Enhanced news sentiment with logarithmic time decay.
-    
+
     Source: Quant-Nanggroe-AI v15.2.0 News Sentinel
     Event types with different decay half-lives and directional uncertainty.
     """
@@ -105,7 +105,7 @@ class NewsSentinelTool:
     def calculate_decayed_impact(self, event: Dict) -> float:
         """
         Calculate impact score with logarithmic time decay.
-        
+
         Formula: impactScore = rawImpact × 0.5^(elapsedSeconds / decayHalfLife)
         """
         event_time = datetime.fromisoformat(event["timestamp"])

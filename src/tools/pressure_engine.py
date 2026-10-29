@@ -17,7 +17,7 @@ logger = logging.getLogger("blackhornet.PressureEngine")
 class PressureNormalizationEngine:
     """
     Compiles all sensor outputs into normalized pressure vectors.
-    
+
     Source: Quant-Nanggroe-AI v15.2.0 Pressure Normalization Engine
     Adapted for BLACKHORNET Python backend.
     """
@@ -48,7 +48,7 @@ class PressureNormalizationEngine:
                           flow_direction: str = "neutral") -> Dict:
         """
         Compile all sensor outputs into normalized pressure vectors.
-        
+
         Returns:
             Dict with buy_pressure, sell_pressure, confidence, verdict
         """

@@ -18,7 +18,7 @@ logger = logging.getLogger("blackhornet.DecisionSynthesis")
 class DecisionSynthesisEngine:
     """
     Deterministic decision table that synthesizes pressure + regime → trade decision.
-    
+
     Source: Quant-Nanggroe-AI v15.2.0 Decision Synthesis Engine
     Adapted for BLACKHORNET.
     """
@@ -102,7 +102,7 @@ class DecisionSynthesisEngine:
                  daily_pnl_pct: float = 0.0) -> Dict:
         """
         Evaluate market state against decision table.
-        
+
         Args:
             regime: Market regime (TRENDING, RANGE, MEAN_REVERT, RISK_OFF, PANIC, NO_TRADE)
             buy_pressure: Normalized buy pressure (0-1)
@@ -110,7 +110,7 @@ class DecisionSynthesisEngine:
             confidence: Signal confidence (0-1)
             volatility: Market volatility (LOW, NORMAL, HIGH)
             daily_pnl_pct: Current daily P&L percentage
-            
+
         Returns:
             Decision dict with action, risk_clearance, and details
         """

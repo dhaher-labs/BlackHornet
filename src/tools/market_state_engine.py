@@ -18,7 +18,7 @@ class MarketStateEngine:
     """
     Determines current market regime for decision gating.
     If NO_TRADE → entire system stops.
-    
+
     Source: Quant-Nanggroe-AI v15.2.0 Market State Engine
     Adapted for BLACKHORNET.
     """
@@ -35,7 +35,7 @@ class MarketStateEngine:
                        volume_ratio: float = 1.0) -> Dict:
         """
         Deterministic regime classification.
-        
+
         Args:
             symbol: Trading symbol
             price_change_5d: 5-day price change percentage
@@ -43,7 +43,7 @@ class MarketStateEngine:
             rsi: RSI(14) value
             atr_pct: ATR as percentage of price
             volume_ratio: Current volume / average volume
-            
+
         Returns:
             Dict with regime, volatility, liquidity, and details
         """

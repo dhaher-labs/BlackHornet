@@ -17,7 +17,7 @@ logger = logging.getLogger("blackhornet.StrategyLifecycle")
 class StrategyLifecycleManager:
     """
     Darwinian strategy evolution: survival of the fittest.
-    
+
     Source: Quant-Nanggroe-AI v15.2.0 Strategy Lifecycle
     Adapted for BLACKHORNET.
     """

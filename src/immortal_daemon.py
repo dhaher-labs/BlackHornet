@@ -55,7 +55,7 @@ GITLAB_FALLBACK = "https://gitlab.com/mulkymalikuldhr"
 class ImmortalDaemon:
     """
     The eternal guardian.
-    
+
     Responsibilities:
       1. Keep self alive (watchdog-protected)
       2. Monitor all ecosystem repos
