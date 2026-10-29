@@ -208,7 +208,7 @@ class LLMProvider:
         Uses tiktoken when available, falls back to heuristic (~4 chars per token).
         """
         try:
-            import tiktoken
+            import tiktoken  # type: ignore[import-not-found]
             model_name = model or self.default_model
             try:
                 encoding = tiktoken.encoding_for_model(model_name)
@@ -354,7 +354,7 @@ class LLMProvider:
             The LiteLLM response.
         """
         try:
-            import litellm
+            import litellm  # type: ignore[import-not-found]
             # If we were previously in mock mode, clear the flag
             if self.mock_mode:
                 logger.warning("llm_mock_mode_deactivated", message="litellm became available, switching off mock mode")

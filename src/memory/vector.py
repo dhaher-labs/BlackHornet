@@ -36,8 +36,8 @@ class VectorStore:
     def _init_backend(self):
         """Initialize ChromaDB and embedding model."""
         try:
-            import chromadb
-            from chromadb.config import Settings
+            import chromadb  # type: ignore[import-not-found]
+            from chromadb.config import Settings  # type: ignore[import-not-found]
 
             self._client = chromadb.PersistentClient(
                 path=self.persist_dir,
@@ -58,7 +58,7 @@ class VectorStore:
             self._collection = None
 
         try:
-            from sentence_transformers import SentenceTransformer
+            from sentence_transformers import SentenceTransformer  # type: ignore[import-not-found]
 
             self._encoder = SentenceTransformer("all-MiniLM-L6-v2")
             logger.info("sentence-transformers model loaded")

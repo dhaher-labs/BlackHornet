@@ -160,7 +160,7 @@ class TelegramChannel(BaseChannel):
     async def start(self) -> None:
         """Start the Telegram bot."""
         try:
-            from telegram.ext import ApplicationBuilder
+            from telegram.ext import ApplicationBuilder  # type: ignore[import-not-found]
 
             self._app = ApplicationBuilder().token(self._bot_token).build()
             self._bot = self._app.bot
@@ -360,7 +360,7 @@ class DiscordChannel(BaseChannel):
     async def start(self) -> None:
         """Start the Discord bot."""
         try:
-            import discord
+            import discord  # type: ignore[import-not-found]
 
             intents = discord.Intents.default()
             intents.message_content = True
@@ -439,8 +439,8 @@ class SlackChannel(BaseChannel):
     async def start(self) -> None:
         """Start the Slack bot."""
         try:
-            from slack_bolt.async_app import AsyncApp
-            from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
+            from slack_bolt.async_app import AsyncApp  # type: ignore[import-not-found]
+            from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler  # type: ignore[import-not-found]
 
             self._app = AsyncApp(token=self._bot_token)
 

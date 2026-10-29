@@ -280,7 +280,7 @@ class VoiceTool(BaseTool):
     async def _transcribe_whisper(self, audio_path: str, language: str) -> Optional[ToolResult]:
         """Transcribe using local Whisper model."""
         try:
-            import whisper
+            import whisper  # type: ignore[import-not-found]
 
             if self._whisper_model is None:
                 self._whisper_model = whisper.load_model(self._whisper_model_size)

@@ -21,7 +21,7 @@ class MacroSentimentTool:
     def get_regime(self) -> str:
         """Detect current risk-on/risk-off regime"""
         try:
-            import yfinance as yf
+            import yfinance as yf  # type: ignore[import-not-found]
 
             # Use proxy assets to determine regime
             proxies = {

@@ -287,7 +287,7 @@ class QdrantBackend(VectorStoreBackend):
         """Lazy-initialize the Qdrant client."""
         if self._client is None:
             try:
-                from qdrant_client import QdrantClient
+                from qdrant_client import QdrantClient  # type: ignore[import-not-found]
                 kwargs: dict[str, Any] = {"url": self._url}
                 if self._api_key:
                     kwargs["api_key"] = self._api_key
@@ -299,7 +299,7 @@ class QdrantBackend(VectorStoreBackend):
     async def upsert(self, id: str, embedding: list[float], metadata: dict[str, Any]) -> None:
         try:
             client = self._get_client()
-            from qdrant_client.models import PointStruct
+            from qdrant_client.models import PointStruct  # type: ignore[import-not-found]
             client.upsert(
                 collection_name=self._collection,
                 points=[PointStruct(id=id, vector=embedding, payload=metadata)],
@@ -341,7 +341,7 @@ class ChromaBackend(VectorStoreBackend):
         """Lazy-initialize the ChromaDB client and collection."""
         if self._collection is None:
             try:
-                import chromadb
+                import chromadb  # type: ignore[import-not-found]
                 self._client = chromadb.PersistentClient(path=self._persist_directory)
                 self._collection = self._client.get_or_create_collection(self._collection_name)
             except ImportError:

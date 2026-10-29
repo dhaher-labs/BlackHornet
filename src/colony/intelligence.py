@@ -253,7 +253,7 @@ class IntelligenceBridge:
         # and the urllib fallback below are the remaining web-search paths.
 
         try:
-            from duckduckgo_search import DDGS
+            from duckduckgo_search import DDGS  # type: ignore[import-not-found]
             with DDGS() as ddgs:
                 for r in ddgs.text(query, max_results=5):
                     results.append({"source": "duckduckgo", "title": r.get("title", ""), "href": r.get("href", ""), "body": r.get("body", "")[:500]})

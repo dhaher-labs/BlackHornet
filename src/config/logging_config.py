@@ -15,7 +15,7 @@ import sys
 from typing import Any, MutableMapping, Optional
 
 try:
-    import structlog
+    import structlog  # type: ignore[import-not-found]
     # Verify structlog is actually usable — some versions have API incompatibilities
     _structlog_test = structlog.get_logger("test")
     if not hasattr(_structlog_test, 'info'):
