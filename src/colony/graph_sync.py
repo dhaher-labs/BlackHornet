@@ -220,11 +220,12 @@ class GraphifySyncBridge:
                         colony_id = colony.get("colony_id") if isinstance(colony, dict) else getattr(colony, "colony_id", None)
 
                 if isinstance(agent, dict):
+                    raw_status = agent.get("state", agent.get("status", "unknown"))
                     self.sync_agent(
                         agent_id=agent_id,
                         name=agent.get("name"),
                         agent_type=agent.get("agent_type", "agent") if isinstance(agent.get("agent_type"), str) else str(agent.get("agent_type", "agent")),
-                        status=agent.get("state", agent.get("status", "unknown")),
+                        status=str(raw_status) if raw_status is not None else "unknown",
                         colony=colony_id,
                         health=agent.get("health_score", 0),
                         tasks_completed=agent.get("tasks_completed", 0),
