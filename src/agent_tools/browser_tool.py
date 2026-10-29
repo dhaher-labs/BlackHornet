@@ -135,9 +135,12 @@ class BrowserTool(BaseTool):
             typing_delay_min=self._config.get("typing_delay_min", 0.05),
             typing_delay_max=self._config.get("typing_delay_max", 0.15),
         )
-        self._browser = None
-        self._page = None
-        self._playwright = None
+        # Opaque third-party handles (playwright objects), intentionally Any:
+        # keeps optional-import environments type-clean without a
+        # TYPE_CHECKING import of playwright.async_api.
+        self._browser: Any = None
+        self._page: Any = None
+        self._playwright: Any = None
 
     @property
     def definition(self) -> ToolDefinition:

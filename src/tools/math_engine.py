@@ -120,10 +120,10 @@ class MathEngine:
                         num_std: float = 2.0) -> Dict[str, List[Optional[float]]]:
         """Bollinger Bands with SMA middle, ±Nσ bands"""
         middle = MathEngine.sma(closes, period)
-        upper = [None] * len(closes)
-        lower = [None] * len(closes)
-        bandwidth = [None] * len(closes)
-        percent_b = [None] * len(closes)
+        upper: List[Optional[float]] = [None] * len(closes)
+        lower: List[Optional[float]] = [None] * len(closes)
+        bandwidth: List[Optional[float]] = [None] * len(closes)
+        percent_b: List[Optional[float]] = [None] * len(closes)
 
         for i in range(period - 1, len(closes)):
             slice_data = closes[i - period + 1:i + 1]

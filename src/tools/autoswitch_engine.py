@@ -8,7 +8,7 @@ Tracks success/failure per provider, auto-cooldown on errors.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 logger = logging.getLogger("blackhornet.AutoSwitch")
 
@@ -19,9 +19,9 @@ class ProviderHealth:
         self.name = name
         self.success_count = 0
         self.failure_count = 0
-        self.last_success = None
-        self.last_failure = None
-        self.cooldown_until = None
+        self.last_success: Optional[datetime] = None
+        self.last_failure: Optional[datetime] = None
+        self.cooldown_until: Optional[datetime] = None
         self.avg_latency_ms = 0.0
         self._latencies: list[float] = []
 
