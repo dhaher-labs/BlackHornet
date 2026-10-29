@@ -18,6 +18,7 @@ import argparse
 import logging
 import os
 import sys
+from typing import Any
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -125,7 +126,7 @@ class MemoryCLI:
                 print(f"❌ Key '{args.key}' not found")
 
     def _cmd_search(self, args) -> None:
-        results = []
+        results: list[Any] = []
         if args.tier in ("all", "ltm"):
             results.extend(self.ltm.search(args.query, limit=args.limit))
         if args.tier in ("all", "sem"):
