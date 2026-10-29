@@ -1,49 +1,18 @@
-# Architecture — BlackHornet Ω
+# Architecture (numbered-tree slot)
 
-## System Architecture
+> **Canonical architecture document: [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md)** (v7.0.0).
+>
+> This slot previously held a pre-v7 "Ω Engine" ASCII diagram describing a
+> five-lineage fusion that the v7 rebuild retired. It was replaced with this
+> pointer in the repo-tidy pass (Task 21) so the tree cannot drift out of sync
+> with the canonical document again.
 
-```
-┌─────────────────────────────────────────────────────┐
-│                  BLACKHORNET Ω ENGINE                │
-├─────────────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │ Omega    │  │ Hermes   │  │ Bridges          │  │
-│  │ Engine   │  │ Nous     │  │ (AO/TS compat)   │  │
-│  └────┬─────┘  └────┬─────┘  └──────────────────┘  │
-│       │              │                               │
-│  ┌────▼──────────────▼──────────────────────────┐   │
-│  │           FOUNDING PILLARS                    │   │
-│  │  ┌──────┐ ┌────┐ ┌────────┐ ┌──────────┐    │   │
-│  │  │SCS   │ │Cnc│ │Predict │ │  Brain   │    │   │
-│  │  │      │ │l  │ │or (L9) │ │  (L0)    │    │   │
-│  │  └──────┘ └────┘ └────────┘ └──────────┘    │   │
-│  │  ┌──────┐ ┌────┐ ┌────────┐ ┌──────────┐    │   │
-│  │  │Genome│ │Evl │ │Score   │ │  Sync    │    │   │
-│  │  │      │ │tn  │ │        │ │          │    │   │
-│  │  └──────┘ └────┘ └────────┘ └──────────┘    │   │
-│  └──────────────────────────────────────────────┘   │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐   │
-│  │              AGENT LAYER                      │   │
-│  │  Coder  Browser  Executor  Planner  Manus    │   │
-│  │  Researcher  Colony  Auditor  ORCA  BabyAGI  │   │
-│  └──────────────────────────────────────────────┘   │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐   │
-│  │              MEMORY LAYER                     │   │
-│  │  STM  LTM  Episodic  Vector  Second Brain    │   │
-│  └──────────────────────────────────────────────┘   │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐   │
-│  │              INFRASTRUCTURE                   │   │
-│  │  Config  Logging  CircuitBreaker  Channels   │   │
-│  └──────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────┘
-```
+Related documents in this directory:
 
-## Key Design Decisions
-1. **Omega Engine** is the brain — all founding pillars are modules inside it
-2. **Agents** are independent — each can run in its own worktree (ORCA pattern)
-3. **Memory** is tiered — STM for speed, LTM for persistence, Second Brain for life
-4. **Bridges** enable cross-language communication (Python ↔ TS)
-5. **Sync** is mandatory — ecosystem must always be current
+| Document | What it is |
+|---|---|
+| [`MODULE_GRAPH.md`](MODULE_GRAPH.md) | **Generated** internal import/dependency graph (Mermaid) — regenerate with `python3 scripts/gen_arch_graph.py` |
+| [`BH_V2_RESEARCH_ARCHITECTURE.md`](BH_V2_RESEARCH_ARCHITECTURE.md) | Historical v2 research notes (pre-rebuild, kept for traceability) |
+| [`infinity-adapter-contract.md`](infinity-adapter-contract.md) | Infinity adapter contract |
+
+Architecture decision records live in [`../11-adr/`](../11-adr/).
