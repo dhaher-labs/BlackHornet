@@ -23,6 +23,7 @@ from src.agents.security import SecurityAgent
 from src.agents.researcher import ResearcherAgent
 from src.agents.colony import ColonyAgent
 from src.colony_types import AgentInfo, AgentSpec, AgentType, AgentState, EventType
+from src.swarm.parked_agents import ParkedAgentRegistry, WakeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +251,35 @@ class AgentRegistry:
     def get_unhealthy_agents(self, threshold: float = 0.7) -> List[BaseAgent]:
         """Return agents with health score below *threshold*."""
         return [a for a in self._agents.values() if a.health_score < threshold]
+
+    # ── Parked-agent sync (production caller) ──
+
+    def snapshot_states(self) -> Dict[str, AgentState]:
+        """Snapshot of live agent states (agent_id → AgentState).
+
+        The input format expected by
+        :meth:`ParkedAgentRegistry.sync_from_states` — build once per
+        orchestrator tick and pass it together with a wake handler to
+        :meth:`sync_parked`.
+        """
+        return {agent_id: agent.state for agent_id, agent in self._agents.items()}
+
+    def sync_parked(
+        self,
+        parked_registry: ParkedAgentRegistry,
+        wake: WakeHandler,
+        **kwargs: Any,
+    ) -> Dict[str, List[str]]:
+        """Park idle agents / wake busy ones via the parked-agent registry.
+
+        Production wiring for the consumer-side lifecycle entry point:
+        builds the state snapshot from the live agents in this registry and
+        delegates to :meth:`ParkedAgentRegistry.sync_from_states`. Keyword
+        arguments (``idle_states``, ``active_states``, ``event_types``,
+        ``metadata``) pass through unchanged. Repeated ticks with unchanged
+        states are no-ops — parked agents are never re-parked.
+        """
+        return parked_registry.sync_from_states(self.snapshot_states(), wake, **kwargs)
 
     # ── A2A capability advertisement ──
 

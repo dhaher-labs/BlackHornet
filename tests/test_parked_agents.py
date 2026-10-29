@@ -7,6 +7,7 @@ re-park detachment, manual dispatch, and error containment.
 import asyncio
 import unittest
 
+from src.agents.registry import AgentRegistry
 from src.colony_types.events import Event
 from src.colony_types.models import AgentState, EventType
 from src.core.event_bus import EventBus
@@ -441,6 +442,84 @@ class TestParkedAgentsSync(unittest.TestCase):
         reg.park("a", ["*"], rec)
         report = reg.sync_from_states({"a": AgentState.READY}, rec)
         self.assertEqual(report["woken"], ["a"])
+
+
+class _FakeAgent:
+    """Minimal stand-in with the one attribute snapshot_states() reads."""
+
+    def __init__(self, state):
+        self.state = state
+
+
+class TestRegistryParkedSync(unittest.TestCase):
+    """AgentRegistry.sync_parked: production caller wiring (Task 20)."""
+
+    def test_snapshot_states_empty_and_populated(self):
+        reg = AgentRegistry()
+        self.assertEqual(reg.snapshot_states(), {})
+        reg._agents["a"] = _FakeAgent(AgentState.SUSPENDED)
+        reg._agents["b"] = _FakeAgent(AgentState.ACTIVE)
+        self.assertEqual(
+            reg.snapshot_states(),
+            {"a": AgentState.SUSPENDED, "b": AgentState.ACTIVE},
+        )
+
+    def test_sync_parked_full_lifecycle(self):
+        reg = AgentRegistry()
+        parked = ParkedAgentRegistry()
+        rec = _Recorder()
+        reg._agents["idle1"] = _FakeAgent(AgentState.SUSPENDED)
+        reg._agents["busy"] = _FakeAgent(AgentState.ACTIVE)
+
+        first = reg.sync_parked(parked, rec)
+        self.assertEqual(first, {"parked": ["idle1"], "woken": []})
+        self.assertTrue(parked.is_parked("idle1"))
+        self.assertFalse(parked.is_parked("busy"))
+        self.assertEqual(rec.events, [])  # parking never invokes wake
+
+        # idle1 returns to work: next tick wakes it.
+        reg._agents["idle1"].state = AgentState.ACTIVE
+        second = reg.sync_parked(parked, rec)
+        self.assertEqual(second, {"parked": [], "woken": ["idle1"]})
+        self.assertFalse(parked.is_parked("idle1"))
+        self.assertEqual(len(rec.events), 1)
+
+    def test_sync_parked_idempotent_across_ticks(self):
+        reg = AgentRegistry()
+        parked = ParkedAgentRegistry()
+        rec = _Recorder()
+        reg._agents["a"] = _FakeAgent(AgentState.WAITING)
+
+        self.assertEqual(reg.sync_parked(parked, rec), {"parked": ["a"], "woken": []})
+        self.assertEqual(reg.sync_parked(parked, rec), {"parked": [], "woken": []})
+        self.assertEqual(len(parked), 1)  # not re-parked on repeated ticks
+
+    def test_sync_parked_custom_idle_states(self):
+        reg = AgentRegistry()
+        parked = ParkedAgentRegistry()
+        rec = _Recorder()
+        reg._agents["a"] = _FakeAgent(AgentState.SUSPENDED)
+
+        # With a custom idle set, SUSPENDED does not qualify for parking.
+        self.assertEqual(
+            reg.sync_parked(parked, rec, idle_states=[AgentState.WAITING]),
+            {"parked": [], "woken": []},
+        )
+        self.assertEqual(len(parked), 0)
+        reg._agents["a"].state = AgentState.WAITING
+        self.assertEqual(
+            reg.sync_parked(parked, rec, idle_states=[AgentState.WAITING]),
+            {"parked": ["a"], "woken": []},
+        )
+
+    def test_sync_parked_metadata_stored_on_entry(self):
+        reg = AgentRegistry()
+        parked = ParkedAgentRegistry()
+        reg._agents["a"] = _FakeAgent(AgentState.SUSPENDED)
+        reg.sync_parked(parked, _Recorder(), metadata={"source": "tick"})
+        entry = parked.get("a")
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.metadata, {"source": "tick"})
 
 
 if __name__ == "__main__":
