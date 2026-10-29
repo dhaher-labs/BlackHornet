@@ -150,6 +150,7 @@ class PIIRedactionFilter(logging.Filter):
             msg = original_getMessage()
             return redact_pii(msg) if isinstance(msg, str) else msg
 
-        # Monkey-patch just for this record's lifecycle
-        record.getMessage = _redacted_getMessage
+        # Monkey-patch just for this record's lifecycle (setattr: deliberate
+        # dynamic attribute write, not a static method override)
+        setattr(record, "getMessage", _redacted_getMessage)
         return True
