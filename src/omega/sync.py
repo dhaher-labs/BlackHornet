@@ -6,7 +6,7 @@ import os
 import platform
 import subprocess
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 
@@ -32,7 +32,7 @@ class EcosystemSync:
         self._last_sync: Optional[float] = None
 
     def run(self) -> dict:
-        results = {"timestamp": time.time(), "actions": []}
+        results: dict[str, Any] = {"timestamp": time.time(), "actions": []}
         try:
             pages_result = self._sync_pages()
             results["actions"].append({"type": "pages_sync", **pages_result})
