@@ -26,7 +26,7 @@ import logging
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("MemoryBridge")
 
@@ -69,7 +69,7 @@ class MemoryBridge:
         self.repo_path = Path(repo_path or HERMES_HOME / "agent-sync")
         self.state_file = self.repo_path / "sync" / "logs" / f"{BOT_NAME}_state.json"
         self.running = True
-        self.state = dict(STATE_SCHEMA)
+        self.state: Dict[str, Any] = dict(STATE_SCHEMA)
         self._load_state()
         self._ensure_repo()
 
