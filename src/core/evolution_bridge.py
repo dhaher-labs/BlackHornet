@@ -13,7 +13,7 @@ automatically during every agent execution cycle.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from src.core.skill_crystallizer import SkillCrystallizer, ExecutionTrajectory, TrajectoryStep
 from src.core.agent_contracts import AgentContractManager, AgentContract
@@ -58,20 +58,21 @@ class EvolutionBridge:
 
     # ── Agent Loop Hooks ─────────────────────────────────────────
 
-    def create_pre_iteration_hook(self, task: str) -> callable:
+    def create_pre_iteration_hook(self, task: str) -> Callable[..., Any]:
         """Create a pre_iteration hook for AgentLoop."""
         self._current_trajectory = ExecutionTrajectory(task=task)
 
         # Create contract for this task
-        self._current_contract = self._contract_manager.create_contract(
+        contract = self._contract_manager.create_contract(
             agent_id=self.agent_id,
             cost_budget=0.5,
             token_budget=32000,
             max_duration=300.0,
         )
+        self._current_contract = contract
 
         async def pre_iteration_hook(iteration: int, messages: list) -> None:
-            if not self._contract_manager.check_contract(self._current_contract.contract_id):
+            if not self._contract_manager.check_contract(contract.contract_id):
                 logger.warning("Contract check failed at iteration %d", iteration)
 
             # Recall relevant skills
@@ -82,7 +83,7 @@ class EvolutionBridge:
 
         return pre_iteration_hook
 
-    def create_post_iteration_hook(self) -> callable:
+    def create_post_iteration_hook(self) -> Callable[..., Any]:
         """Create a post_iteration hook for AgentLoop."""
         async def post_iteration_hook(iteration: int, response: str) -> None:
             if self._current_trajectory:
@@ -96,7 +97,7 @@ class EvolutionBridge:
 
         return post_iteration_hook
 
-    def create_on_tool_call_hook(self) -> callable:
+    def create_on_tool_call_hook(self) -> Callable[..., Any]:
         """Create an on_tool_call hook for AgentLoop."""
         async def on_tool_call_hook(tool_name: str, arguments: dict) -> None:
             if self._current_contract:
@@ -117,7 +118,7 @@ class EvolutionBridge:
 
         return on_tool_call_hook
 
-    def create_on_error_hook(self) -> callable:
+    def create_on_error_hook(self) -> Callable[..., Any]:
         """Create an on_error hook for AgentLoop."""
         async def on_error_hook(error: Exception) -> None:
             if self._current_trajectory:
