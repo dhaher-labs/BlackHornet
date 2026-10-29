@@ -161,7 +161,7 @@ class ColonyBridge:
 
     def _discover_agents(self) -> List[Dict]:
         """Discover agents registered in the colony."""
-        agents = []
+        agents: List[Dict] = []
         if not self.available:
             return agents
 

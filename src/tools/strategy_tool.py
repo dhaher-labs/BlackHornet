@@ -127,7 +127,7 @@ class StrategyTool:
     def _score_confluence(self, scenario: str, smc: dict, indicators: dict,
                           thesis: dict) -> dict:
         """Score confluences (0-5 scale, need 3 minimum)"""
-        score = 0
+        score: float = 0
         details = []
 
         # 1. Trend alignment

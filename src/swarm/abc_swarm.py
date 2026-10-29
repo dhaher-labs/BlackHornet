@@ -9,7 +9,7 @@ from enum import Enum
 try:
     import numpy as np
 except ImportError:
-    from ._numpy_shim import np
+    from ._numpy_shim import np  # type: ignore[no-redef]
 import random
 import logging
 

@@ -80,7 +80,7 @@ class EvolutionEngine:
         return {"trend": trend, "avg_fitness_before": round(avg_before, 3), "avg_fitness_after": round(avg_after, 3), "direction": round(direction, 3)}
 
     def weak_dimensions(self) -> list[dict]:
-        dims = {}
+        dims: dict = {}
         for e in self._history:
             if e.event_type == "mutation":
                 d = dims.setdefault(e.dimension, {"count": 0, "successes": 0, "failures": 0})
