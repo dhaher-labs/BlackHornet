@@ -76,7 +76,7 @@ class MemoryCLI:
 
         sub.add_parser("consolidate", help="Run memory consolidation")
 
-        p_forget = sub.add_parser("forget", help="Run forgetting cycle")
+        sub.add_parser("forget", help="Run forgetting cycle")
 
         p_archive = sub.add_parser("archive", help="Archive operations")
         p_archive.add_argument("action", choices=["list", "restore"])

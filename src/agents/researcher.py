@@ -186,7 +186,6 @@ class ResearcherAgent(BaseAgent):
         """
         query = task.payload.get("query", "")
         file_patterns = task.payload.get("file_patterns", ["**/*.py"])
-        max_results = task.payload.get("max_results", 20)
 
         # Simulate codebase search
         matches: List[Dict[str, Any]] = []

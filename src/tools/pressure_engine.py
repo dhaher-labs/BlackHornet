@@ -150,7 +150,6 @@ class PressureNormalizationEngine:
                 return json.dumps({"error": analysis["error"]})
 
             smc = analysis.get("smc_structure", {})
-            indicators = analysis.get("indicators", {})
 
             trend_direction = smc.get("trend", "neutral")
             trend_strength = 0.7 if trend_direction != "neutral" else 0.3

@@ -98,7 +98,6 @@ class JournalTool:
                         max(abs(sum(t["pnl"] for t in self.trades if t["pnl"] < 0)), 0.01)
 
         # Streaks
-        current_streak = 0
         max_win_streak = 0
         max_loss_streak = 0
         temp_streak = 0

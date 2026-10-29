@@ -135,7 +135,6 @@ class BacktestEngine:
             self.partial_fills += 1
 
         # Commission
-        commission = actual_entry * actual_lot * 100000 * self.COMMISSION_PCT * 2  # Round trip
 
         trade = Trade(
             symbol=symbol,

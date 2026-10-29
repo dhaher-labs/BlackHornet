@@ -204,8 +204,6 @@ class DecisionSynthesisEngine:
 
             trend = smc.get("trend", "neutral")
             rsi = indicators.get("rsi_14", 50)
-            atr_pct_str = indicators.get("atr_pct", "1.0")
-            atr_pct = float(atr_pct_str.replace("%", "")) if isinstance(atr_pct_str, str) else atr_pct_str or 1.0
 
             # Derive pressure
             buy_pressure = 0.5

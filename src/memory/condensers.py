@@ -158,7 +158,6 @@ class TemporalCondenser(BaseCondenser):
         return "temporal"
 
     def condense(self, data: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
-        max_age_hours: float = kwargs.get("max_age_hours", 0)  # 0 = no filter
         group_by: str = kwargs.get("group_by", "hour")  # hour | day | session
 
         if not data:
@@ -290,7 +289,6 @@ class RedundancyCondenser(BaseCondenser):
         return "redundancy"
 
     def condense(self, data: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
-        similarity_threshold: float = kwargs.get("similarity_threshold", 1.0)
 
         if not data:
             return {"unique_count": 0, "duplicates_removed": 0, "data": [], "original_count": 0}

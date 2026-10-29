@@ -202,7 +202,6 @@ class VoiceAgent(BaseAgent):
         * ``text`` – text sample (optional).
         """
         text = task.payload.get("text", "")
-        audio_data = task.payload.get("audio_data")
 
         # Simple heuristic: check for common words
         detected_language = self._language

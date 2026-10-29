@@ -72,7 +72,7 @@ def send_telegram(text):
         req = urllib.request.Request(url, data=data,
                                      headers={"Content-Type": "application/json"},
                                      method="POST")
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=10):
             pass
     except Exception:
         pass

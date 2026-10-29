@@ -107,7 +107,7 @@ class MeshBus:  # noqa: D101
                 addr = ("239.255.43.21", 43210)
             try:
                 # Use asyncio to send UDP multicast
-                loop = asyncio.get_event_loop()
+                asyncio.get_event_loop()
                 if not hasattr(self, "_sock"):
                     self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

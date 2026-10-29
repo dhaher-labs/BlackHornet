@@ -71,8 +71,6 @@ class GraphifySyncBridge:
                 self._graph.add_edge_by_label(source_label, target_label, relation, weight)
                 self._sync_counts["edges_created"] += 1
             elif hasattr(self._graph, "add_edge"):
-                src = source_label
-                tgt = target_label
                 if hasattr(self._graph, "find_node"):
                     src_node = self._graph.find_node(source_label)
                     tgt_node = self._graph.find_node(target_label)

@@ -283,7 +283,6 @@ class TechnicalAnalysisTool:
     def _generate_technical_thesis(self, smc: Dict, indicators: Dict,
                                     data: List[Dict]) -> Dict:
         """Generate technical thesis from all analysis"""
-        latest_close = data[-1]["close"]
         trend = smc.get("trend", "neutral")
 
         # Confluence scoring

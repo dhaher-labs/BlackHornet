@@ -281,11 +281,6 @@ def main():
     parser.add_argument("--db", help="Path to blackhornet SQLite DB for state mirroring")
     args = parser.parse_args()
 
-    if args.bot is not None:
-        BOT_NAME = args.bot
-    if args.interval is not None:
-        SYNC_INTERVAL = args.interval
-
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s [%(name)s] %(levelname)s: %(message)s'

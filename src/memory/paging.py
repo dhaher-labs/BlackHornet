@@ -457,7 +457,7 @@ class LettaStylePaging:
             self._pages.keys(),
             key=lambda pid: self._pages[pid].last_accessed or self._pages[pid].created_at,
         )
-        page = self._pages.pop(oldest_id)
+        self._pages.pop(oldest_id)
         # Remove from session index
         for session_id, pids in self._session_pages.items():
             if oldest_id in pids:

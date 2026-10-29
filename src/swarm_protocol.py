@@ -238,7 +238,6 @@ class SwarmProtocol:
             try:
                 data = json.loads(f.read_text())
                 agent_id = data.get("agent_id", f.stem)
-                last_seen = data.get("last_seen", "")
 
                 # Check if alive (recent heartbeat)
                 try:

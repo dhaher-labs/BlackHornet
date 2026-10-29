@@ -94,7 +94,7 @@ class BHUpgradeLoop:
     def upgrade_self(self) -> Dict:
         results = {}
         from colony_bridge import ColonyBridge
-        bridge = ColonyBridge()
+        ColonyBridge()
 
         results["pull_from_amc"] = self.pull_from_amc()
 

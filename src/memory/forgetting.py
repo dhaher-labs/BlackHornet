@@ -187,7 +187,6 @@ class ForgettingMechanism:
         now = time.time()
         access_count = getattr(entry, "access_count", 0) or 0
         accessed_at = getattr(entry, "accessed_at", 0) or now
-        created_at = getattr(entry, "created_at", 0) or now
 
         hours_since_access = max((now - accessed_at) / 3600.0, 1.0)
         age_multiplier = math.exp(-0.01 * hours_since_access)

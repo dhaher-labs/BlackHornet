@@ -28,7 +28,7 @@ class GraphTracker:
     def track_agent(self, agent_id: str, agent_type: str = "agent",
                     properties: Optional[Dict[str, Any]] = None) -> str:
         if self._graph:
-            node = self._graph.find_or_create(
+            self._graph.find_or_create(
                 agent_id,
                 agent_type,
                 properties or {},

@@ -146,7 +146,6 @@ class EcosystemOrchestrator:
                 self._radar = ColonyRadar(radar_config, self._health_monitor)
             if self._mesh_bus:
                 # Create a new MeshBus with health monitor
-                mesh_config = self._mesh_bus._config
                 self._mesh_bus = MeshBus(self._mesh_bus._local_bus, self._mesh_bus._identity, self._mesh_bus._http_port, self._health_monitor)
             if self._nest:
                 # Create a new SelfNest with health monitor

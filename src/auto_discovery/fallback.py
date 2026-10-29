@@ -80,7 +80,7 @@ class FallbackChain:
             logger.debug("cache_hit", prompt_preview=prompt[:60])
             return cached
 
-        route = self._router.route(prompt)
+        self._router.route(prompt)
         chain: list[dict[str, str]] = []
 
         if complexity is not None:
@@ -118,7 +118,7 @@ class FallbackChain:
             logger.debug("cache_hit", prompt_preview=prompt[:60])
             return cached
 
-        route = self._router.route(prompt)
+        self._router.route(prompt)
         chain_entries: list[dict[str, str]] = [
             {"provider": name, "model": ""}
             for name in chain

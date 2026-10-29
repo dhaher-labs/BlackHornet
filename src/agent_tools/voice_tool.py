@@ -361,7 +361,6 @@ class VoiceTool(BaseTool):
         Tries local pyttsx3 first, then falls back to API.
         """
         text = tool_call.arguments.get("text", "")
-        language = tool_call.arguments.get("language", self._default_language)
         voice = tool_call.arguments.get("voice", self._tts_voice)
         output_format = tool_call.arguments.get("output_format", "wav")
         use_api = tool_call.arguments.get("use_api", False)

@@ -138,7 +138,6 @@ class TUIRenderer:
         lines: List[str] = []
         if eco_data:
             stats = eco_data.get("stats", {})
-            cache = eco_data.get("cache", {})
             running = stats.get("running", False)
             lines.append(f"Running: {'YES' if running else 'NO'}")
             lines.append(f"Colony: {stats.get('colony', '?')}")

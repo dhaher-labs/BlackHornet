@@ -119,7 +119,6 @@ class BrowserAgent(BaseAgent):
         randomized timing, viewport randomization, and header spoofing.
         """
         url = task.payload.get("url", "about:blank")
-        wait_for = task.payload.get("wait_for", "load")
 
         # Create page object
         page = BrowserPage(url=url)

@@ -338,7 +338,7 @@ class QueenAgent:
     async def _cmd_sync(self) -> dict[str, Any]:
         if not self._orchestrator:
             return {"success": False, "error": "No orchestrator wired"}
-        status = await self._orchestrator.full_status()
+        await self._orchestrator.full_status()
         return {"success": True, "sync_count": self._orchestrator._sync_count}
 
     async def _cmd_ask(self, args: list[str]) -> dict[str, Any]:
