@@ -43,7 +43,7 @@ class OmegaEngine:
         scorer = ProjectScorer()
         scs = SelfConfidenceSystem()
 
-        boot_report = {
+        boot_report: dict[str, Any] = {
             "timestamp": time.time(),
             "omega_version": "5.0",
             "constitution": constitution.validate(),
