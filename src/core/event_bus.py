@@ -147,6 +147,26 @@ class EventBus:
             except Exception as e:
                 logger.error("event_handler_error", handler=str(handler), error=str(e))
 
+    async def publish_typed(
+        self,
+        event_type: EventType,
+        source: str,
+        data: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Publish an event from a typed enum, source, and payload dict.
+
+        Convenience wrapper that constructs an :class:`Event` from the typed
+        arguments and delegates to :meth:`publish_event`.
+
+        Args:
+            event_type: The typed event enum value.
+            source: Identifier of the publishing component.
+            data: Optional payload attached to the event.
+        """
+        await self.publish_event(
+            Event(event_type=event_type, source=source, data=data or {})
+        )
+
     async def publish_action(self, action: Action) -> None:
         """Publish an action event.
 

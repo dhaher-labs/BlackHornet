@@ -26,7 +26,7 @@ from src.colony_types import AgentInfo, AgentSpec, AgentType, AgentState, EventT
 
 logger = logging.getLogger(__name__)
 
-AGENT_TYPES: Dict[AgentType, Type[BaseAgent]] = {
+AGENT_TYPES: Dict[AgentType, Type[Any]] = {
     AgentType.MANUS: ManusAgent,
     AgentType.PLANNER: PlannerAgent,
     AgentType.EXECUTOR: ExecutorAgent,
