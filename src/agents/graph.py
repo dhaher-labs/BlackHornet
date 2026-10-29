@@ -422,9 +422,12 @@ class AgentGraph:
                 if asyncio.iscoroutinefunction(node.action):
                     tasks[node_name] = asyncio.create_task(node.action(dict(state)))
                 else:
-                    tasks[node_name] = asyncio.create_task(
-                        asyncio.coroutine(lambda n=node: n.action(dict(state)))()
-                    )
+                    action = node.action
+
+                    async def _run_sync(a=action) -> Any:
+                        return a(dict(state))
+
+                    tasks[node_name] = asyncio.create_task(_run_sync())
 
         results: Dict[str, Any] = {}
         if tasks:
