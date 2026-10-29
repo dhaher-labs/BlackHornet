@@ -254,6 +254,8 @@ class BrowserTool(MCPTool):
         selector = params.get("selector", "body")
         tab = self._active()
 
+        # content is heterogeneous by design: str (text/html) or list[dict] (links/images)
+        content: Any
         if extract_type == "text":
             content = f"Extracted text content from {tab.url} [{selector}]"
         elif extract_type == "html":
