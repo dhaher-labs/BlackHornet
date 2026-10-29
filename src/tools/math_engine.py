@@ -25,7 +25,7 @@ class MathEngine:
     @staticmethod
     def sma(data: List[float], period: int) -> List[Optional[float]]:
         """Simple Moving Average"""
-        result = [None] * len(data)
+        result: List[Optional[float]] = [None] * len(data)
         for i in range(period - 1, len(data)):
             result[i] = sum(data[i - period + 1:i + 1]) / period
         return result
@@ -33,20 +33,22 @@ class MathEngine:
     @staticmethod
     def ema(data: List[float], period: int) -> List[Optional[float]]:
         """Exponential Moving Average (Wilder's smoothing)"""
-        result = [None] * len(data)
+        result: List[Optional[float]] = [None] * len(data)
         if len(data) < period:
             return result
         multiplier = 2.0 / (period + 1)
         # Seed with SMA
         result[period - 1] = sum(data[:period]) / period
         for i in range(period, len(data)):
-            result[i] = (data[i] - result[i - 1]) * multiplier + result[i - 1]
+            prev = result[i - 1]
+            assert prev is not None
+            result[i] = (data[i] - prev) * multiplier + prev
         return result
 
     @staticmethod
     def wma(data: List[float], period: int) -> List[Optional[float]]:
         """Weighted Moving Average"""
-        result = [None] * len(data)
+        result: List[Optional[float]] = [None] * len(data)
         weight_sum = period * (period + 1) / 2
         for i in range(period - 1, len(data)):
             w_sum = sum(data[i - period + 1 + j] * (j + 1) for j in range(period))
