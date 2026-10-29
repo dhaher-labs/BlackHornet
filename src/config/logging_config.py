@@ -9,9 +9,10 @@ Falls back to standard logging when structlog is not installed.
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import sys
-from typing import Optional
+from typing import Any, MutableMapping, Optional
 
 try:
     import structlog
@@ -84,8 +85,9 @@ def _setup_structlog(
         renderer: structlog.types.Processor = structlog.processors.JSONRenderer()
     else:
         try:
-            from rich.traceback import Traceback
-            from rich.console import Console
+            # rich availability probe (imports kept out to stay lint-clean)
+            if importlib.util.find_spec("rich") is None:
+                raise ImportError
 
             # Use rich-enhanced console renderer for development
             renderer = structlog.dev.ConsoleRenderer(
@@ -176,18 +178,42 @@ def _setup_stdlib_logging(log_level: int, log_file: Optional[str]) -> None:
     logging.getLogger("qdrant_client").setLevel(logging.WARNING)
 
 
+class _KwargsLoggerAdapter(logging.LoggerAdapter):
+    """Adapter allowing structlog-style keyword calls on stdlib loggers.
+
+    The codebase logs with keyword arguments (e.g.
+    ``log.info("x_started", channel_id=c)``). structlog accepts these,
+    but stdlib ``Logger._log`` raises TypeError for unknown keywords.
+    This adapter renders keyword arguments into a ``key=value`` message
+    suffix (mirroring the structlog style) and only forwards the reserved
+    stdlib keywords (exc_info, extra, stack_info, stacklevel).
+    """
+
+    _RESERVED = ("exc_info", "extra", "stack_info", "stacklevel")
+
+    def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple:
+        """Render kwargs into the message and strip non-stdlib keywords."""
+        passthrough = {k: kwargs[k] for k in self._RESERVED if k in kwargs}
+        extras = {k: v for k, v in kwargs.items() if k not in passthrough}
+        if extras:
+            suffix = " ".join(f"{key}={value}" for key, value in extras.items())
+            msg = f"{msg} [{suffix}]"
+        return msg, passthrough
+
+
 def get_logger(name: str):
     """Get a structured logger instance.
 
     When structlog is available, returns a ``BoundLogger``; otherwise
-    falls back to a standard ``logging.Logger``.
+    falls back to a stdlib logger wrapped in ``_KwargsLoggerAdapter`` so
+    keyword-argument log calls keep working without structlog.
 
     Args:
         name: Logger name, typically ``__name__``.
 
     Returns:
-        Bound structured logger (structlog) or standard logger.
+        Bound structured logger (structlog) or kwargs-tolerant adapter.
     """
     if structlog is not None:
         return structlog.get_logger(name)
-    return logging.getLogger(name)
+    return _KwargsLoggerAdapter(logging.getLogger(name), {})

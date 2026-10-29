@@ -138,5 +138,46 @@ class TestChannelFactory(unittest.TestCase):
         self.assertIn("carrier-pigeon", str(ctx.exception))
 
 
+class TestStdlibKwargsLogger(unittest.TestCase):
+    """get_logger stdlib fallback must tolerate structlog-style kwargs."""
+
+    def _capture_logger(self):
+        import logging as stdlib_logging
+
+        from src.config.logging_config import _KwargsLoggerAdapter
+
+        records: list = []
+
+        class Capture(stdlib_logging.Handler):
+            def emit(self, record):
+                records.append(record)
+
+        base = stdlib_logging.getLogger("test.kwargs.adapter")
+        base.handlers = [Capture()]
+        base.setLevel(stdlib_logging.INFO)
+        base.propagate = False
+        return _KwargsLoggerAdapter(base, {}), records
+
+    def test_kwargs_rendered_into_message(self):
+        adapter, records = self._capture_logger()
+        adapter.warning("poll_error", channel_id="tg-1", error="boom")
+        rendered = records[0].getMessage()
+        self.assertIn("poll_error", rendered)
+        self.assertIn("channel_id=tg-1", rendered)
+        self.assertIn("error=boom", rendered)
+
+    def test_reserved_kwarg_message_does_not_crash(self):
+        adapter, records = self._capture_logger()
+        adapter.warning("sdk_missing", message="pip install python-telegram-bot")
+        rendered = records[0].getMessage()
+        self.assertIn("message=pip install python-telegram-bot", rendered)
+
+    def test_get_logger_call_with_kwargs_is_safe(self):
+        from src.config.logging_config import get_logger
+
+        logger = get_logger("test.kwargs.smoke")
+        logger.info("smoke_event", key="value")  # must not raise on either path
+
+
 if __name__ == "__main__":
     unittest.main()
