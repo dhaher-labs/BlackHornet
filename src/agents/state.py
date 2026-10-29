@@ -10,7 +10,7 @@ from __future__ import annotations
 import threading
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, cast, Dict, List, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -112,15 +112,18 @@ class ColonyState(BaseModel):
     name: str = "default"
     overseer_id: Optional[str] = None
     hands: Dict[str, List[str]] = Field(
-        default_factory=lambda: {
-            "security": [],
-            "code": [],
-            "research": [],
-            "browser": [],
-            "voice": [],
-            "compute": [],
-            "integration": [],
-        }
+        default_factory=lambda: cast(
+            Dict[str, List[str]],
+            {
+                "security": [],
+                "code": [],
+                "research": [],
+                "browser": [],
+                "voice": [],
+                "compute": [],
+                "integration": [],
+            },
+        )
     )
     agents: List[str] = Field(default_factory=list)
     resources: Dict[str, Any] = Field(

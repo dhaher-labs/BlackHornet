@@ -8,7 +8,7 @@ Event classification and time-decay impact scoring.
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Any, Dict
 
 logger = logging.getLogger("blackhornet.NewsSentinel")
 
@@ -22,7 +22,7 @@ class NewsSentinelTool:
     """
 
     # Event classification rules
-    EVENT_TYPES = {
+    EVENT_TYPES: Dict[str, Dict[str, Any]] = {
         "SHOCK": {
             "keywords": ["war", "crash", "collapse", "hack", "crisis", "attack",
                          "emergency", "black swan", "default", "sanction"],

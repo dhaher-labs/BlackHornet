@@ -9,7 +9,7 @@ Auto-kill strategies with negative expectancy after 20+ trades.
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 logger = logging.getLogger("blackhornet.StrategyLifecycle")
 
@@ -133,7 +133,7 @@ class StrategyLifecycleManager:
 
     def get_strategy_report(self) -> str:
         """Get comprehensive strategy lifecycle report"""
-        report = {
+        report: Dict[str, Any] = {
             "total_strategies": len(self.strategies),
             "active": len([s for s in self.strategies.values() if s["state"] == self.ACTIVE]),
             "hibernating": len([s for s in self.strategies.values() if s["state"] == self.HIBERNATING]),
