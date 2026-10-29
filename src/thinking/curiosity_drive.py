@@ -8,8 +8,6 @@ and feedback patterns to find areas for improvement.
 from __future__ import annotations
 
 import logging
-import math
-import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -91,7 +89,7 @@ class CuriosityDrive:
             if topic.lower() not in known_set:
                 goals.append(ExplorationGoal(
                     topic=f"Learn: {topic}",
-                    reason=f"New topic encountered, not yet explored",
+                    reason="New topic encountered, not yet explored",
                     priority=3, source="novelty",
                     score=0.6,
                 ))

@@ -281,7 +281,7 @@ class ColonyBridge:
         s = self.status()
         health = self.report_health()
         print(f"\n{'='*60}")
-        print(f"  BLACKHORNET — MultiColony Bridge v2")
+        print("  BLACKHORNET — MultiColony Bridge v2")
         print(f"{'='*60}")
         print(f"  Colony Available: {'YES' if s['available'] else 'NO'}")
         if not s['available']:

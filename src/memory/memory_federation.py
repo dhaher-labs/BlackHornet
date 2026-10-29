@@ -245,7 +245,7 @@ class MemoryFederation:
                     target_agent=self.colony_id,
                     memory_id=mem_id,
                     action="share",
-                    detail=f"synced from federation",
+                    detail="synced from federation",
                 ))
             elif existing.agreement_count < mem.agreement_count:
                 # Remote has more agreement — resolve in its favor

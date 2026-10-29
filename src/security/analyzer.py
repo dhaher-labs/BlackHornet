@@ -14,9 +14,8 @@ import json
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from src.colony_types import AuditLevel
 
 logger = logging.getLogger(__name__)
 
@@ -358,7 +357,6 @@ class SecurityAnalyzer:
 
     def _entropy_scan(self, code: str, filename: str, threshold: float = 4.5) -> List[SecurityFinding]:
         """Scan for high-entropy strings that may be secrets."""
-        import math
         findings: List[SecurityFinding] = []
 
         # Find quoted strings

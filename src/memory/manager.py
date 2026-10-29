@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from src.config.logging_config import get_logger
 
 # Smallville 3-factor memory stream
 from src.memory.smallville_stream import SmallvilleStream

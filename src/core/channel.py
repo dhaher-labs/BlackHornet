@@ -8,13 +8,12 @@ when channel SDKs are not installed.
 from __future__ import annotations
 
 import asyncio
-import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.exceptions import ChannelError
-from src.colony_types.messages import BusMessage, InboundMessage, MessageType, OutboundMessage
+from src.colony_types.messages import InboundMessage, MessageType, OutboundMessage
 
 logger = get_logger(__name__)
 

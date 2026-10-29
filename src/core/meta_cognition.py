@@ -14,7 +14,6 @@ Mechanism:
 from __future__ import annotations
 
 import logging
-import math
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -222,8 +221,8 @@ class MetaCognition:
 
         if self._bias_profile.underconfidence_tendency > 0.2:
             advice.append(
-                f"Underconfidence detected: increase confidence when pattern "
-                f"has repeated successfully > 3 times"
+                "Underconfidence detected: increase confidence when pattern "
+                "has repeated successfully > 3 times"
             )
 
         if self._bias_profile.confirmation_bias_score > 0.3:

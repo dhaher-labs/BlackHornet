@@ -10,7 +10,7 @@ Risk Clearance: CLEAR / BLOCKED / PAUSE
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict
 
 logger = logging.getLogger("blackhornet.DecisionSynthesis")
 
@@ -191,7 +191,6 @@ class DecisionSynthesisEngine:
         """
         try:
             from src.tools.market_state_engine import MarketStateEngine
-            from src.tools.pressure_engine import PressureNormalizationEngine
             from src.tools.technical_analysis_tool import TechnicalAnalysisTool
 
             mse = MarketStateEngine()

@@ -7,7 +7,7 @@ Fetches OHLCV, economic calendar, market overview
 import json
 import logging
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Dict
 
 logger = logging.getLogger("blackhornet.MarketData")
 

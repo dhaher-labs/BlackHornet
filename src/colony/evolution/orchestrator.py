@@ -1,7 +1,7 @@
 """EvolutionOrchestrator — wires SkillLearner + AutoDiscoveryEnhancer + SelfModifyEngine."""
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from .skill_learner import SkillLearner, SkillRecord

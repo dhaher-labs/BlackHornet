@@ -11,14 +11,12 @@ import asyncio
 import base64
 import io
 import os
-import struct
 import tempfile
 import wave
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool
-from src.exceptions import ToolExecutionError
 from src.bh_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
 
 logger = get_logger(__name__)

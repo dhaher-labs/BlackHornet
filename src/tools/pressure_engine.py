@@ -9,7 +9,7 @@ Normalized to 0.0 - 1.0 scale for deterministic decision synthesis.
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 
 logger = logging.getLogger("blackhornet.PressureEngine")
 
@@ -36,7 +36,7 @@ class PressureNormalizationEngine:
         self.confidence = 0.0
         self.sensor_outputs = {}
 
-    def compile_pressure(self, 
+    def compile_pressure(self,
                           trend_direction: str = "neutral",
                           trend_strength: float = 0.0,
                           smc_signal: str = "none",
@@ -142,7 +142,6 @@ class PressureNormalizationEngine:
         """
         try:
             from src.tools.technical_analysis_tool import TechnicalAnalysisTool
-            from src.tools.news_sentinel import NewsSentinelTool
 
             tat = TechnicalAnalysisTool()
             analysis = json.loads(tat.analyze(symbol, "1h"))

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.agents.base import BaseAgent
-from src.colony_types import AgentSpec, AgentType, Task, TaskResult
+from src.colony_types import AgentSpec, AgentType, Task
 from src.core.reflexion import ReflexionLoop, Memory
 
 logger = logging.getLogger(__name__)

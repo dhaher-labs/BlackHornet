@@ -19,12 +19,11 @@ Integrates with BH's existing memory systems as a complementary retrieval layer.
 from __future__ import annotations
 
 import asyncio
-import json
 import math
 import time
 import hashlib
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from src.config.logging_config import get_logger
 

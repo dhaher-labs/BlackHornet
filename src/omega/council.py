@@ -130,7 +130,7 @@ class Council:
 
     async def run_consensus_debate(self, context: str, proposal: str) -> CouncilResult:
         """Full consensus debate: Proposer -> Challenger -> Judge via ConsensusEngine."""
-        from src.core.consensus_engine import ConsensusEngine, ProposalStatus
+        from src.core.consensus_engine import ConsensusEngine
         engine = ConsensusEngine()
 
         async def challenger_fn(p, rounds):

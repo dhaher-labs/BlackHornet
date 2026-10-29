@@ -8,7 +8,7 @@ Indicators: RSI, EMA, ATR, MACD, Volume Profile
 import json
 import logging
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Dict, List
 
 logger = logging.getLogger("blackhornet.TechnicalAnalysis")
 

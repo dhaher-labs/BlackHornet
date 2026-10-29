@@ -8,10 +8,8 @@ Autonomy levels:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
-import uuid
 from typing import Any, Dict, List, Optional
 
 from src.agent_tools.base import MCPTool

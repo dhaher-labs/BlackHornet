@@ -8,7 +8,6 @@ search integration via Qdrant or ChromaDB.
 from __future__ import annotations
 
 import time
-import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -17,7 +16,6 @@ from src.exceptions import MemoryError
 from src.colony_types.events import Event, Observation, ObservationType
 from src.colony_types.memory import (
     CondenserType,
-    MemoryCondenserType,
     MemoryEntry,
     MemoryPage,
     MemoryQuery,

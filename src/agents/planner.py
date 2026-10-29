@@ -8,12 +8,10 @@ dependency graph, and estimate timelines.
 from __future__ import annotations
 
 import logging
-import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from src.agents.base import BaseAgent
-from src.colony_types import AgentSpec, AgentType, Task, TaskResult
+from src.colony_types import AgentSpec, AgentType, Task
 
 logger = logging.getLogger(__name__)
 

@@ -7,22 +7,16 @@ selection.
 
 from __future__ import annotations
 
-import time
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool
 from src.core.memory_manager import MemoryManager
-from src.exceptions import ToolExecutionError, MemoryError
+from src.exceptions import MemoryError
 from src.bh_types.memory import (
     CondenserType,
-    MemoryCondenserType,
-    MemoryEntry,
     MemoryQuery,
-    MemoryQueryResult,
-    MemorySession,
     MemoryType,
-    SessionState,
 )
 from src.bh_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
 

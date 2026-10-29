@@ -50,7 +50,7 @@ def cmd_status(args: argparse.Namespace) -> None:
     scorer = ProjectScorer()
     council = Council()
 
-    print(f"OmegaEngine v5.0")
+    print("OmegaEngine v5.0")
     print(f"  Running: {stats['running']}")
     print(f"  Loops: {stats['loop_count']}")
     print(f"  Uptime: {stats['uptime_seconds']:.0f}s")

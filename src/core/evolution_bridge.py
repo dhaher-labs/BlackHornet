@@ -13,11 +13,10 @@ automatically during every agent execution cycle.
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any, Optional
 
 from src.core.skill_crystallizer import SkillCrystallizer, ExecutionTrajectory, TrajectoryStep
-from src.core.agent_contracts import AgentContractManager, AgentContract, ContractViolation
+from src.core.agent_contracts import AgentContractManager, AgentContract
 
 logger = logging.getLogger(__name__)
 

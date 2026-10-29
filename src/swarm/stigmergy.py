@@ -12,7 +12,7 @@ Pheromone types:
 
 Pattern: deposit -> evaporate -> diffuse -> sense -> act
 """
-from typing import Dict, List, Tuple, Optional, Any, Callable
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 try:
@@ -21,7 +21,6 @@ except ImportError:
     from ._numpy_shim import np
 import time
 import logging
-import heapq
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)

@@ -8,7 +8,6 @@ AgentState is defined in models.py (unified superset).
 
 from __future__ import annotations
 
-import time
 import uuid
 from enum import Enum
 from typing import Any, Optional

@@ -12,7 +12,7 @@ Phi threshold:
 Reference: Hayashibara et al. (2004), "The Phi-Accrual Failure Detector"
 Auto-recovery strategies: RESTART, FAILOVER, DEGRADE, ESCALATE, RECONNECT
 """
-from typing import Dict, List, Optional, Any, Callable, Set
+from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import time

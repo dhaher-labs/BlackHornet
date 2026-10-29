@@ -9,7 +9,7 @@ Deterministic classification based on ADX, RSI, price change, volume
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 
 logger = logging.getLogger("blackhornet.MarketState")
 

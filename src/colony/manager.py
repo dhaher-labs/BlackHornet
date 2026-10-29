@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from src.colony_types import (
     ColonyConfig,
@@ -17,16 +17,12 @@ from src.colony_types import (
     ColonyInfo,
     ColonyScale,
     ColonyStatus,
-    AgentType,
     AgentInfo,
     HandType,
     Task,
     TaskResult,
     TaskStatus,
-    AutonomyLevel,
     RoutingStrategy,
-    Event,
-    EventType,
 )
 from src.exceptions import ColonyNotFoundError, ColonyFullError
 

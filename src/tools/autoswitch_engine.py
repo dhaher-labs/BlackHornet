@@ -6,12 +6,9 @@ Health-monitored API failover with exponential backoff.
 Tracks success/failure per provider, auto-cooldown on errors.
 """
 
-import json
 import logging
-import time
-import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 logger = logging.getLogger("blackhornet.AutoSwitch")
 

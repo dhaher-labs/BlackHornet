@@ -10,9 +10,9 @@ except ImportError:
     from ._numpy_shim import np
 import logging
 
-from .pso_swarm import RingPSOSwarm, SwarmState, Particle, Topology
-from .abc_swarm import ABCSwarm, BeeRole, FoodSource
-from .stigmergy import PheromoneField, PheromoneType, Pheromone
+from .pso_swarm import RingPSOSwarm, Topology
+from .abc_swarm import ABCSwarm
+from .stigmergy import PheromoneField, PheromoneType
 
 logger = logging.getLogger(__name__)
 

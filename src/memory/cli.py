@@ -18,7 +18,6 @@ import argparse
 import logging
 import os
 import sys
-import time
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -176,7 +175,7 @@ class MemoryCLI:
     def _cmd_consolidate(self, args) -> None:
         print("Running consolidation...")
         report = self.consolidator.run_consolidation()
-        print(f"✅ Consolidation complete:")
+        print("✅ Consolidation complete:")
         print(f"   STM→LTM:     {report.stm_to_ltm}")
         print(f"   LTM→Sem:     {report.ltm_to_semantic}")
         print(f"   Dedup:       {report.deduplicated}")
@@ -186,7 +185,7 @@ class MemoryCLI:
     def _cmd_forget(self, args) -> None:
         print("Running forgetting cycle...")
         report = self.forgetting.run_forgetting()
-        print(f"✅ Forgetting complete:")
+        print("✅ Forgetting complete:")
         print(f"   Archived:    {report.archived}")
         print(f"   Deleted:     {report.deleted}")
         print(f"   Duration:    {report.duration_ms:.1f}ms")

@@ -16,11 +16,10 @@ Every hand tracks: replica count, scaling, task distribution, health monitoring.
 from __future__ import annotations
 
 import logging
-import math
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from src.colony_types import HandType, Task, TaskStatus, AutonomyLevel
+from src.colony_types import HandType, Task, TaskStatus
 
 logger = logging.getLogger(__name__)
 

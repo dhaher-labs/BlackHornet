@@ -7,16 +7,14 @@ be handed off to ExecutorAgent instances or a ColonyAgent.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.base_agent import BaseAgent
-from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole, AgentState
+from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole
 from src.colony_types.colony import ColonyTask
 from src.colony_types.memory import MemoryType
-from src.colony_types.messages import Message, MessageRole
 from src.agents.planner.prompts import (
     PLANNER_SYSTEM_PROMPT,
     PLANNER_DECOMPOSITION_PROMPT,

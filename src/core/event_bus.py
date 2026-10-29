@@ -13,8 +13,6 @@ and OpenHands EventStream with Action/Observation pattern. Provides:
 from __future__ import annotations
 
 import asyncio
-import time
-import uuid
 from collections import defaultdict
 from typing import Any, Callable, Coroutine, Optional
 

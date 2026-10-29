@@ -7,9 +7,8 @@ Event classification and time-decay impact scoring.
 
 import json
 import logging
-import math
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict
 
 logger = logging.getLogger("blackhornet.NewsSentinel")
 

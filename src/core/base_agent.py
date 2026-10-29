@@ -21,7 +21,6 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-import uuid
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field, PrivateAttr
@@ -36,7 +35,7 @@ from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentOutput, 
 from src.colony_types.events import Action, ActionType, Event, EventType, Observation, ObservationType
 from src.colony_types.memory import MemoryType
 from src.colony_types.messages import Message, MessageRole
-from src.colony_types.tools import ToolCall, ToolResult
+from src.colony_types.tools import ToolResult
 
 logger = get_logger(__name__)
 

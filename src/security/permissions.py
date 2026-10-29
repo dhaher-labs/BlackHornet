@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 
 from src.colony_types import (
     AutonomyLevel,
@@ -21,8 +21,6 @@ from src.colony_types import (
     PermissionDef,
     ApprovalRequest,
     EscalationRecord,
-    AuditEntry,
-    AuditEvent,
     AuditEventType,
     RoleDef,
 )

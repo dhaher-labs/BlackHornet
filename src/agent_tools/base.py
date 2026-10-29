@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field, ConfigDict
 

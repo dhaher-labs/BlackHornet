@@ -8,12 +8,10 @@ fallback on failure.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
-from urllib.parse import quote_plus, urljoin
 
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool

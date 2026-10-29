@@ -17,7 +17,7 @@ import logging
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol
 
 from src.colony_types import AuditEntry, AuditEvent, AuditEventType, AuditLevel, AuditQuery
 

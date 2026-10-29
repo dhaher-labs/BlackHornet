@@ -7,7 +7,7 @@ Trade logging, PnL calculation, performance stats
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 logger = logging.getLogger("blackhornet.Journal")
 

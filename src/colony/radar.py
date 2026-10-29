@@ -14,11 +14,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import socket
 import struct
 import time
-import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Optional
 

@@ -7,13 +7,11 @@ builtins, and stdout/stderr capture. Returns execution results.
 from __future__ import annotations
 
 import logging
-import multiprocessing
 import os
 import sys
 import time
-import traceback
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 

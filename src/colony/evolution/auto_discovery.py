@@ -8,7 +8,7 @@ import pkgutil
 import time
 import uuid
 from dataclasses import dataclass, field, asdict
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 
 @dataclass

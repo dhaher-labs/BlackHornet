@@ -8,12 +8,11 @@ automatic recovery from failed steps.
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.agents.base import BaseAgent
-from src.colony_types import AgentSpec, AgentType, EventType, Task, TaskResult
+from src.colony_types import AgentSpec, AgentType, EventType, Task
 
 logger = logging.getLogger(__name__)
 

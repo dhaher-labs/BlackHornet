@@ -20,13 +20,13 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 
 # Jeumpa Brain — zero-cost no-auth LLM fallback
-from src.colony.jeumpa_brain import JeumpaBrain, JeumpaResult
+from src.colony.jeumpa_brain import JeumpaBrain
 
 logger = get_logger(__name__)
 

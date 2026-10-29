@@ -7,7 +7,6 @@ async variants and actionability checks from CloakBrowser patterns.
 from __future__ import annotations
 
 import asyncio
-import math
 import random
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple

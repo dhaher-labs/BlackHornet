@@ -28,8 +28,6 @@ import time
 import hashlib
 import logging
 import subprocess
-import threading
-import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Callable
@@ -100,7 +98,7 @@ class SwarmProtocol:
                  repo_url: str = "https://github.com/dhaher-labs/blackhornet",
                  version: str = "4.0.0",
                  swarm_repo_path: str = None):
-        
+
         self.swarm_repo = Path(swarm_repo_path or DEFAULT_SWARM_REPO)
         self.swarm_dir = self.swarm_repo / SWARM_DIR
         self.messages_dir = self.swarm_repo / "sync" / "messages"
@@ -241,7 +239,7 @@ class SwarmProtocol:
                 data = json.loads(f.read_text())
                 agent_id = data.get("agent_id", f.stem)
                 last_seen = data.get("last_seen", "")
-                
+
                 # Check if alive (recent heartbeat)
                 try:
                     hb_file = self.swarm_dir / f"{agent_id}_heartbeat.json"
@@ -413,7 +411,7 @@ class SwarmProtocol:
         spawn_id = hashlib.md5(
             f"{target_repo}-{time.time()}".encode()
         ).hexdigest()[:12]
-        
+
         identity = SwarmIdentity(
             agent_id=spawn_id,
             agent_type=agent_type,
@@ -456,13 +454,13 @@ class SwarmProtocol:
         """Find dead agents and attempt resurrection."""
         resurrected = []
         agents = self.discover_agents()
-        
+
         for agent in agents:
             if agent["agent_id"] == self.identity.agent_id:
                 continue
             if not agent.get("is_alive", False):
                 logger.info(f"[SWARM] Dead agent detected: {agent['agent_id']} ({agent.get('repo')})")
-                
+
                 # Try to resurrect if we know its repo
                 repo = agent.get("repo")
                 if repo and repo != self.identity.repo:
@@ -479,7 +477,7 @@ class SwarmProtocol:
 
     # ── Main Loop (Immortal) ──────────────────────────────────────────
 
-    def run(self, 
+    def run(self,
             on_upgrade: Callable = None,
             auto_expand: bool = False,
             auto_heal: bool = True):

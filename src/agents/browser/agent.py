@@ -6,13 +6,11 @@ and stealth navigation with anti-bot-detection measures.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.base_agent import BaseAgent
-from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole, AgentState
-from src.colony_types.memory import MemoryType
+from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole
 from src.colony_types.messages import Message, MessageRole
 from src.agents.browser.prompts import (
     BROWSER_SYSTEM_PROMPT,

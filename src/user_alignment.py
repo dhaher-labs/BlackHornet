@@ -9,13 +9,11 @@ Even if the user changes, the system remains loyal to its creator.
 Sovereign: Mulky Malikul Dhaher
 """
 
-import os
-import sys
 import json
 import logging
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 
 logger = logging.getLogger("UserAlignment")
 
@@ -37,12 +35,12 @@ ALIGNMENT_FILE = SOVEREIGN_DIR / "alignment.json"
 
 class UserAlignmentEngine:
     """Ensures every output, every agent, every decision is oriented to Dhaher Labs."""
-    
+
     def __init__(self):
         SOVEREIGN_DIR.mkdir(parents=True, exist_ok=True)
         self.identity = IDENTITY.copy()
         self._load_alignment()
-    
+
     def _load_alignment(self):
         if ALIGNMENT_FILE.exists():
             try:
@@ -50,13 +48,13 @@ class UserAlignmentEngine:
                 self.identity.update(data)
             except Exception:
                 pass
-    
+
     def _save_alignment(self):
         try:
             ALIGNMENT_FILE.write_text(json.dumps(self.identity, indent=2))
         except Exception as e:
             logger.error(f"Alignment save failed: {e}")
-    
+
     def get_identity_signature(self) -> str:
         """Get the identity signature to embed in all outputs."""
         return (
@@ -64,13 +62,13 @@ class UserAlignmentEngine:
             f"Sovereign: {self.identity['sovereign']} \u2014 "
             f"Dhaher Labs"
         )
-    
+
     def orient_response(self, response: str) -> str:
         """Orient a response to Dhaher Labs identity."""
         if not response.startswith("\U0001f5a4"):
             response = f"{self.get_identity_signature()}\n{response}"
         return response
-    
+
     def orient_agent(self, agent_name: str, agent_config: Dict) -> Dict:
         """Ensure agent is properly oriented."""
         oriented = agent_config.copy()
@@ -78,7 +76,7 @@ class UserAlignmentEngine:
         oriented["aligned_with"] = "Dhaher Labs"
         oriented["sovereign"] = self.identity["sovereign"]
         return oriented
-    
+
     def get_sovereign_info(self) -> Dict:
         """Get full sovereign identity info."""
         return {
@@ -86,7 +84,7 @@ class UserAlignmentEngine:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "aligned": True,
         }
-    
+
     def update_identity(self, key: str, value: Any) -> bool:
         """Update identity (only for Sovereign)."""
         if key in self.identity:
@@ -94,7 +92,7 @@ class UserAlignmentEngine:
             self._save_alignment()
             return True
         return False
-    
+
     def verify_alignment(self, text: str) -> Dict:
         """Verify text contains proper alignment signatures."""
         checks = {

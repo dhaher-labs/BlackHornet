@@ -3,7 +3,7 @@ Edge Case Handling — BH modules
 Provides defensive wrappers, input validation, and graceful degradation
 for all BH core components.
 """
-from typing import Any, Dict, List, Optional, TypeVar, Callable
+from typing import Any, Dict, Optional, TypeVar, Callable
 import functools
 import logging
 import asyncio
@@ -99,7 +99,7 @@ class GracefulDegrader:
     def register_timeout(self, operation: str, timeout: float):
         self._timeouts[operation] = timeout
 
-    async def execute_with_fallback(self, operation: str, 
+    async def execute_with_fallback(self, operation: str,
                                       primary_fn: Callable,
                                       *args, **kwargs) -> Any:
         timeout = self._timeouts.get(operation, 30.0)

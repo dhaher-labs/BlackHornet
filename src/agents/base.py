@@ -21,28 +21,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 import uuid
 from abc import abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.colony_types import (
     AgentInfo,
     AgentSpec,
     AgentState,
-    AgentType,
     AutonomyLevel,
-    Event,
     EventType,
     Task,
     TaskResult,
-    ToolCall,
     ToolResult,
 )
 from src.core.circuit_breaker import CircuitBreaker, CircuitState
 from src.core.event_bus import EventBus as CoreEventBus
-from src.exceptions import AgentError, AgentStateError, AgentTimeoutError
+from src.exceptions import AgentStateError
 
 logger = logging.getLogger(__name__)
 

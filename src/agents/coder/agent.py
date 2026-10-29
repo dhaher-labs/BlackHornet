@@ -12,8 +12,6 @@ from typing import Any, Optional
 from src.config.logging_config import get_logger
 from src.core.base_agent import BaseAgent
 from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole, AgentState
-from src.colony_types.memory import MemoryType
-from src.colony_types.messages import Message, MessageRole
 from src.agents.coder.prompts import (
     CODER_SYSTEM_PROMPT,
     CODER_DEBUG_PROMPT,

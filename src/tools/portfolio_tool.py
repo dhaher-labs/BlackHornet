@@ -4,13 +4,11 @@ Portfolio Manager Agent (L3 - Decision Layer)
 Portfolio assessment, allocation, position sizing
 """
 
-from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from typing import Optional, Dict, List
 import json
 import logging
-from typing import Dict, List, Any
+from typing import Any
 
 logger = logging.getLogger("blackhornet.Portfolio")
 

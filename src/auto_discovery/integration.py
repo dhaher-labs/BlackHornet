@@ -18,7 +18,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from src.auto_discovery.config_manager import ConfigManager
 from src.auto_discovery.cost_tracker import CostTracker

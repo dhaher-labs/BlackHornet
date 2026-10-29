@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool
-from src.exceptions import ToolExecutionError, SandboxError
+from src.exceptions import ToolExecutionError
 from src.bh_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
 
 logger = get_logger(__name__)
@@ -538,7 +538,6 @@ class DockerTool(BaseTool):
             )
 
         try:
-            import json as json_mod
             container = client.containers.get(container_id)
             attrs = container.attrs
 

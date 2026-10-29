@@ -6,7 +6,6 @@ file transfer, and lifecycle management.
 
 from __future__ import annotations
 
-import asyncio
 import io
 import tarfile
 import time

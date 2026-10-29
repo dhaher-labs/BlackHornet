@@ -29,9 +29,9 @@ import signal
 import logging
 import asyncio
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional
 try:
     from dotenv import load_dotenv
 except ImportError:
@@ -484,7 +484,7 @@ class blackhornet:
         logger.info(f"OpenCode Keys: {len(OPENCODE_API_KEYS)}")
         logger.info(f"Trading Tools: {len(self.tools)}")
         logger.info(f"Risk Rules: {RISK_MAX_PER_TRADE:.1%}/{RISK_DAILY_MAX:.1%}/{RISK_WEEKLY_MAX:.1%}")
-        logger.info(f"Deployment: Research Lab (Stage 1)")
+        logger.info("Deployment: Research Lab (Stage 1)")
         logger.info("AGENTS.md Principles: ACTIVE")
         logger.info("=" * 60)
 
@@ -841,7 +841,6 @@ class blackhornet:
         )
 
     async def generate_response(self, prompt: str, force_provider: str = None) -> str:
-        import aiohttp
 
         messages = [
             {"role": "system", "content": AGENTS_SYSTEM_PROMPT},

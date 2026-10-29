@@ -6,19 +6,17 @@ with task routing, hand coordination, and failure recovery.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.base_agent import BaseAgent
 from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole, AgentState, SubagentSpawn
-from src.colony_types.colony import ColonyConfig, ColonyTask, ColonyStatusReport, ColonyState, HandType
+from src.colony_types.colony import ColonyConfig, ColonyTask, ColonyStatusReport, ColonyState
 from src.agents.colony.prompts import (
     COLONY_SYSTEM_PROMPT,
     COLONY_COORDINATION_PROMPT,
     COLONY_STATUS_PROMPT,
     COLONY_TASK_ROUTING_PROMPT,
-    COLONY_HAND_COORDINATION_PROMPT,
     COLONY_FAILURE_RECOVERY_PROMPT,
 )
 

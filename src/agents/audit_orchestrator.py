@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.graph.graph_store import GraphStore
 from src.graph.graphify_pipeline import GraphifyPipeline
 
 logger = logging.getLogger(__name__)

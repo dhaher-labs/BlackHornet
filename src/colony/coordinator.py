@@ -14,7 +14,6 @@ from typing import Any, Optional
 from src.config.logging_config import get_logger
 from src.core.event_bus import EventBus
 from src.colony_types.colony import ColonyTask
-from src.colony_types.messages import BusMessage
 
 logger = get_logger(__name__)
 

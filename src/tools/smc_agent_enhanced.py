@@ -7,10 +7,9 @@ LiquidityLevel, SmartMoneySetup, TradeExecution
 ICT Concepts: Power of 3, Optimal Trade Entry (OTE)
 """
 
-import json
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass, field, asdict
 
 logger = logging.getLogger("blackhornet.SMCAgentEnhanced")

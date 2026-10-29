@@ -23,7 +23,6 @@ from __future__ import annotations
 import asyncio
 import shlex
 import time
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger

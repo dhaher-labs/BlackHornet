@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +94,7 @@ class SelfPromptGenerator:
             lines.append(f"  Communicate in a {ctx.communication_style} style.")
 
         lines.append(f"  The user has engaged in {ctx.recent_interactions} previous interactions.")
-        lines.append(f"  Respond appropriately to their expertise level across domains.")
+        lines.append("  Respond appropriately to their expertise level across domains.")
 
         if task:
             lines.append(f"  Task context: {task}")

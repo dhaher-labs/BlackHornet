@@ -14,8 +14,7 @@ import json
 import logging
 import os
 import subprocess
-import sys
-from typing import Any, Dict, List, Optional, AsyncIterator
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)

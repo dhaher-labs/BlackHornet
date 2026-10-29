@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import threading
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from src.config.logging_config import get_logger
 

@@ -26,7 +26,7 @@ import logging
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -74,7 +74,7 @@ class ImmortalDaemon:
         self.running = True
         self.cycles = 0
         self.health_log: List[Dict] = []
-        
+
         # Register signal handlers
         signal.signal(signal.SIGTERM, self._shutdown)
         signal.signal(signal.SIGINT, self._shutdown)
@@ -113,7 +113,7 @@ class ImmortalDaemon:
                 "last_commit": None,
                 "behind_origin": 0,
             }
-            
+
             if repo_status["is_git"]:
                 try:
                     # Get last commit
@@ -147,7 +147,7 @@ class ImmortalDaemon:
     def upgrade_ecosystem_repo(self, repo: str) -> bool:
         """Pull latest and re-install for a single repo."""
         repo_dir = BASE_DIR if repo == "blackhornet" else HERMES_HOME / "spawns" / repo
-        
+
         if not repo_dir.exists():
             logger.warning(f"Repo {repo} not found at {repo_dir}")
             return False
@@ -232,7 +232,7 @@ class ImmortalDaemon:
     def ensure_bootstrap_in_repo(self, repo: str) -> bool:
         """Make sure repo has bootstrap.sh for auto-install on clone."""
         repo_dir = BASE_DIR if repo == "blackhornet" else HERMES_HOME / "spawns" / repo
-        
+
         if not repo_dir.exists():
             return False
 
@@ -241,7 +241,7 @@ class ImmortalDaemon:
 
         bootstrap_path = scripts_dir / "bootstrap.sh"
         swarm_proto_path = repo_dir / "src" / "swarm_protocol.py"
-        
+
         # Copy bootstrap if missing
         if not bootstrap_path.exists():
             source_bootstrap = BASE_DIR / "scripts" / "bootstrap.sh"
@@ -295,7 +295,7 @@ fi
         """Immortal daemon loop."""
         logger.info("⚕ Immortal Daemon starting...")
         logger.info(f"  Agent: {self.swarm.identity.agent_id}")
-        logger.info(f"  Type: guardian")
+        logger.info("  Type: guardian")
         logger.info(f"  Interval: {CHECK_INTERVAL}s")
         logger.info(f"  Ecosystem: {len(ECOSYSTEM_REPOS)} repos")
 
@@ -305,7 +305,7 @@ fi
         while self.running:
             try:
                 self.cycles += 1
-                
+
                 # Health check
                 health = self.check_ecosystem_health()
                 self.health_log.append(health)
@@ -369,16 +369,16 @@ fi
 
         latest = self.health_log[-1]
         lines = [
-            f"╔══════════════════════════════════════╗",
-            f"║   ECOSYSTEM HEALTH                   ║",
-            f"╠══════════════════════════════════════╣",
+            "╔══════════════════════════════════════╗",
+            "║   ECOSYSTEM HEALTH                   ║",
+            "╠══════════════════════════════════════╣",
             f"║ Agents Alive: {latest['agents_alive']:<3}  Dead: {latest['agents_dead']:<3}        ║",
         ]
         for repo, status in latest["repos"].items():
             icon = "✓" if status["exists"] else "✗"
             behind = f"-{status['behind_origin']}" if status.get("behind_origin", 0) > 0 else "up-to-date"
             lines.append(f"║ {icon} {repo:<28} {behind:<10} ║")
-        lines.append(f"╚══════════════════════════════════════╝")
+        lines.append("╚══════════════════════════════════════╝")
         return "\n".join(lines)
 
 

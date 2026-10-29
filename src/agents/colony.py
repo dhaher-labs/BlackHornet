@@ -6,24 +6,20 @@ heartbeat monitoring, and resource balancing across the colony.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from src.agents.base import BaseAgent
 from src.colony_types import (
     AgentSpec,
     AgentType,
-    AgentState,
-    AutonomyLevel,
     ColonyConfig,
     HandType,
     Task,
-    TaskResult,
 )
-from src.colony.hands import Hand, HandManager
+from src.colony.hands import HandManager
 
 logger = logging.getLogger(__name__)
 

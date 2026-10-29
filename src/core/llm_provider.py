@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Optional
 
 from src.config.logging_config import get_logger
-from src.exceptions import LLMError, LLMRateLimitError, LLMTokensExceededError
+from src.exceptions import LLMError, LLMTokensExceededError
 
 logger = get_logger(__name__)
 

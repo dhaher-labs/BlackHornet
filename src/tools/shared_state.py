@@ -16,7 +16,7 @@ import sqlite3
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Union, List, TypedDict
+from typing import Optional, Dict, Union
 
 logger = logging.getLogger("blackhornet.SharedState")
 

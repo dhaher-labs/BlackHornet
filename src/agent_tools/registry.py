@@ -8,7 +8,7 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -298,7 +298,7 @@ class ToolRegistry:
         # 4. Circuit breaker
         cb = self._circuit_breakers.get(tool_name)
         if cb and not cb.can_execute(self._cb_config):
-            audit.error = f"Tool unavailable (circuit breaker open)"
+            audit.error = "Tool unavailable (circuit breaker open)"
             audit.success = False
             self._log_audit(audit)
             return {"success": False, "error": audit.error, "error_code": -32003}

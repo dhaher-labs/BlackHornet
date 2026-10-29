@@ -6,14 +6,12 @@ screenshot capture using anti-detection techniques.
 
 from __future__ import annotations
 
-import base64
 import logging
-import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.agents.base import BaseAgent
-from src.colony_types import AgentSpec, AgentType, Task, TaskResult
+from src.colony_types import AgentSpec, AgentType, Task
 
 logger = logging.getLogger(__name__)
 

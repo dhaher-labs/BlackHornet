@@ -7,10 +7,9 @@ Volume Profile, Stochastic, CCI, ADX, Correlation, VWAP, EMA/SMA
 100% deterministic, no AI - pure math.
 """
 
-import json
 import logging
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from datetime import datetime
 
 logger = logging.getLogger("blackhornet.MathEngine")

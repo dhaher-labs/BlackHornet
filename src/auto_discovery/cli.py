@@ -488,7 +488,7 @@ class AutoDiscoveryCLI:
         self._print_header("Usage Statistics")
         print(f"║  Total tokens:    {total_tokens:<10}                            ║")
         print(f"║  Total est. cost: ${total_cost:<8.6f}                        ║")
-        print(f"║  Providers:                                                      ║")
+        print("║  Providers:                                                      ║")
 
         if not all_stats:
             print("║  (no usage recorded yet)                              ║")

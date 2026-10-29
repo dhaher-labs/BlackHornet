@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import time
 from typing import Any, Optional
 
 from src.core.self_healing import PhiAccrualFailureDetector, SelfHealingOrchestrator, RecoveryAction, ComponentHealth, FailureLevel
@@ -10,7 +9,6 @@ from src.core.circuit_breaker import CircuitBreaker
 from src.colony.radar import ColonyRadar
 from src.colony.mesh_bus import MeshBus
 from src.colony.nest import SelfNest
-from src.colony.orchestrator import EcosystemOrchestrator
 
 logger = logging.getLogger(__name__)
 

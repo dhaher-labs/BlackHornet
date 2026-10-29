@@ -9,7 +9,6 @@ A2A capability advertisement.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Type
 
 from src.core.event_bus import EventBus
@@ -23,7 +22,7 @@ from src.agents.voice import VoiceAgent
 from src.agents.security import SecurityAgent
 from src.agents.researcher import ResearcherAgent
 from src.agents.colony import ColonyAgent
-from src.colony_types import AgentInfo, AgentSpec, AgentType, AgentState, AutonomyLevel, EventType
+from src.colony_types import AgentInfo, AgentSpec, AgentType, AgentState, EventType
 
 logger = logging.getLogger(__name__)
 

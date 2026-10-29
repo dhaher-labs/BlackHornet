@@ -10,7 +10,6 @@ into a summary page and stored in T1.
 from __future__ import annotations
 
 import logging
-import math
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple

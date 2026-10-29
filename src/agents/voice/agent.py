@@ -6,14 +6,11 @@ and multi-language voice interactions.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Optional
 
 from src.config.logging_config import get_logger
 from src.core.base_agent import BaseAgent
-from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole, AgentState
-from src.colony_types.memory import MemoryType
-from src.colony_types.messages import Message, MessageRole
+from src.colony_types.agent import AgentCapabilities, AgentConfig, AgentRole
 from src.agents.voice.prompts import (
     VOICE_SYSTEM_PROMPT,
     VOICE_CONVERSATION_PROMPT,

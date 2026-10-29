@@ -8,8 +8,8 @@ Risk Rules HARDCODED: 0.5%/trade, 1%/day, 3%/week
 
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Dict, List
+from datetime import datetime
+from typing import Optional, List
 
 logger = logging.getLogger("blackhornet.RiskOfficer")
 

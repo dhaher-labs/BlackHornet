@@ -1,8 +1,7 @@
 """Hermes Agent-inspired subagent RPC pipeline for inter-agent communication."""
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, Optional, Any, Callable
 from enum import Enum
-import json
 import uuid
 
 class RPCMethod(Enum):

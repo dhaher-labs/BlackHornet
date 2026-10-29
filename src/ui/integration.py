@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import threading
-from typing import Any, Optional
 
 from src.ui.event_bus import EventBus, Event
 from src.ui.api_bridge import APIBridge

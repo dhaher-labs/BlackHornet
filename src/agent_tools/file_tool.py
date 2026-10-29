@@ -8,7 +8,6 @@ detection — all with path validation and size limits for safety.
 from __future__ import annotations
 
 import difflib
-import fnmatch
 import os
 import re
 import shutil

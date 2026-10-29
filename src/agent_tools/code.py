@@ -12,8 +12,7 @@ import logging
 import subprocess
 import sys
 import time
-import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.agent_tools.base import MCPTool
 

@@ -194,7 +194,6 @@ class BacktestEngine:
         signal_func(candle, indicators) -> dict with:
           direction, entry, stop_loss, take_profit, lot_size
         """
-        from src.tools.math_engine import MathEngine
 
         closes = [d["close"] for d in data]
         highs = [d["high"] for d in data]

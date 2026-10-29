@@ -14,15 +14,12 @@ Integration with existing Immortal Gateway (ARCHITECTURE.md §8):
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import signal
 import subprocess
 import sys
 import time
-import uuid
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from src.config.logging_config import get_logger

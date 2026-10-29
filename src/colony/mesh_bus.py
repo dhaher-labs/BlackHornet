@@ -13,8 +13,6 @@ import asyncio
 import json
 import socket
 import struct
-import time
-import uuid
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Optional
 

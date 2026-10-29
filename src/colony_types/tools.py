@@ -8,14 +8,15 @@ ToolCall and ToolResult are defined in models.py (unified superset).
 
 from __future__ import annotations
 
-import time
-import uuid
 from enum import Enum
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from .models import ToolCall, ToolResult
+# Explicit re-export: public API surface (tests and downstream import
+# ToolCall/ToolResult from this module). Same-name alias keeps ruff F401 clean.
+from .models import ToolCall as ToolCall, ToolResult as ToolResult
+
 
 
 class ToolType(str, Enum):

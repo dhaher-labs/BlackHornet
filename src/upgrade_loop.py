@@ -131,7 +131,6 @@ class BHUpgradeLoop:
 
     def self_push(self, message: str = "[auto] upgrade sync") -> bool:
         """Auto-commit and push upgrade results."""
-        import subprocess
         try:
             r = subprocess.run(["git", "-C", str(BASE_DIR), "status", "--porcelain"],
                              capture_output=True, text=True, timeout=10)

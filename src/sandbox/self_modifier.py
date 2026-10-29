@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional
 
 from src.sandbox.code_executor import ExecResult
 
