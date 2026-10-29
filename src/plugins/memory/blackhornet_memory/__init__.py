@@ -106,9 +106,16 @@ class BHMemoryProvider(MemoryProvider):
             {"key": "data_dir", "description": "Memory data directory", "required": False, "default": "~/.bh/memory"},
         ]
 
+    @staticmethod
+    def _resolve_hermes_home() -> str:
+        try:
+            from hermes_constants import get_hermes_home  # type: ignore[import-not-found]
+        except Exception:
+            return os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+        return str(get_hermes_home())
+
     def initialize(self, session_id: str, **kwargs) -> None:
-        from hermes_constants import get_hermes_home  # type: ignore[import-not-found]
-        self._bh_home = kwargs.get("hermes_home") or str(get_hermes_home())
+        self._bh_home = str(kwargs.get("hermes_home") or self._resolve_hermes_home())
         self._session_id = session_id
         self._turn_count = 0
 
