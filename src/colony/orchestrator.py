@@ -77,6 +77,8 @@ class EcosystemOrchestrator:
         self._mesh_bus = None
         self._nest = None
         self._agent_registry = None
+        self._parked_registry: Any = None
+        self._park_wake: Any = None
         self._colony_manager = None
         self._health_monitor = health_monitor
         self._graph_store = None
@@ -104,6 +106,8 @@ class EcosystemOrchestrator:
         nest: Any = None,
         agent_registry: Any = None,
         colony_manager: Any = None,
+        parked_registry: Any = None,
+        park_wake: Any = None,
         graph_store: Any = None,
         session_recorder: Any = None,
         memory_system: Any = None,
@@ -116,6 +120,8 @@ class EcosystemOrchestrator:
         self._mesh_bus = mesh
         self._nest = nest
         self._agent_registry = agent_registry
+        self._parked_registry = parked_registry
+        self._park_wake = park_wake
         self._colony_manager = colony_manager
         self._graph_store = graph_store
         self._session_recorder = session_recorder
@@ -153,7 +159,7 @@ class EcosystemOrchestrator:
                 self._nest = SelfNest(nest_config, self._health_monitor)
 
         logger.info(
-            "orchestrator_wired radar=%s mesh=%s nest=%s registry=%s colony=%s graph=%s session=%s memory=%s lifecycle=%s mcp=%s",
+            "orchestrator_wired radar=%s mesh=%s nest=%s registry=%s colony=%s graph=%s session=%s memory=%s lifecycle=%s mcp=%s parked=%s",
             radar is not None,
             mesh is not None,
             nest is not None,
@@ -164,6 +170,7 @@ class EcosystemOrchestrator:
             memory_system is not None,
             lifecycle_recorder is not None,
             mcp_server is not None,
+            parked_registry is not None,
         )
 
     async def start(self) -> None:
@@ -355,6 +362,9 @@ class EcosystemOrchestrator:
 
                 await self._sync_agent_graph()
 
+                # Parked-agent lifecycle: park idle / wake busy (idempotent)
+                await self._sync_parked_agents()
+
                 # Evolution cycle — self-evolve every sync
                 if self._evolution_bridge:
                     evo_actions = await self._evolution_bridge.evolve()
@@ -374,6 +384,40 @@ class EcosystemOrchestrator:
                 logger.warning("orchestrator_sync_error err=%s", e)
 
             await asyncio.sleep(self._config.sync_interval)
+
+    async def _sync_parked_agents(self) -> None:
+        """Park idle agents / wake busy ones via the parked-agent registry.
+
+        Runs on every orchestrator sync tick. No-op unless the agent
+        registry, parked registry, and a wake handler are all wired
+        (``wire(parked_registry=..., park_wake=...)``). Sync is idempotent:
+        already-parked agents are never re-parked, so repeated ticks do not
+        churn subscriptions. Errors are contained — a parked-sync failure
+        never breaks the sync loop.
+        """
+        if not (
+            self._agent_registry is not None
+            and self._parked_registry is not None
+            and self._park_wake is not None
+        ):
+            return
+        try:
+            report = self._agent_registry.sync_parked(
+                self._parked_registry, self._park_wake
+            )
+            if report.get("parked") or report.get("woken"):
+                logger.info(
+                    "parked_sync parked=%s woken=%s",
+                    len(report["parked"]),
+                    len(report["woken"]),
+                )
+                self._ecosystem_state.append_audit(
+                    "orchestrator.parked_sync",
+                    parked=report["parked"],
+                    woken=report["woken"],
+                )
+        except Exception as e:
+            logger.warning("parked_sync_error err=%s", e)
 
     async def _sync_agent_graph(self) -> None:
         """Sync agent states to Graphify knowledge graph via GraphifySyncBridge."""

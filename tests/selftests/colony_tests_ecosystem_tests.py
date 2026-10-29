@@ -516,6 +516,79 @@ class TestEcosystemOrchestrator(unittest.TestCase):
         self.assertIn("2/3 healthy", section)
         self.assertIn("Peers discovered: 7", section)
 
+    def test_orch_parked_sync_noop_without_wiring(self):
+        orch = self._make_orch()
+        # Neither registry nor parked registry wired → returns silently.
+        self.loop.run_until_complete(orch._sync_parked_agents())
+        self.assertEqual(orch._ecosystem_state.audit_log, [])
+
+    def test_orch_parked_sync_parks_idle_and_audits(self):
+        from src.agents.registry import AgentRegistry
+        from src.colony_types.models import AgentState
+        from src.swarm.parked_agents import ParkedAgentRegistry
+
+        class _FakeAgent:
+            def __init__(self, state):
+                self.state = state
+
+        woken = []
+
+        def _wake(event):
+            woken.append(event)
+
+        orch = self._make_orch()
+        reg = AgentRegistry()
+        reg._agents["idle1"] = _FakeAgent(AgentState.SUSPENDED)
+        parked = ParkedAgentRegistry()
+        orch.wire(agent_registry=reg, parked_registry=parked, park_wake=_wake)
+
+        self.loop.run_until_complete(orch._sync_parked_agents())
+
+        self.assertTrue(parked.is_parked("idle1"))
+        audits = [
+            a for a in orch._ecosystem_state.audit_log
+            if a.get("event") == "orchestrator.parked_sync"
+        ]
+        self.assertEqual(len(audits), 1)
+        self.assertEqual(audits[0]["parked"], ["idle1"])
+
+        # Second tick: idempotent — no new audit entry, no churn.
+        self.loop.run_until_complete(orch._sync_parked_agents())
+        audits = [
+            a for a in orch._ecosystem_state.audit_log
+            if a.get("event") == "orchestrator.parked_sync"
+        ]
+        self.assertEqual(len(audits), 1)
+
+    def test_orch_parked_sync_wakes_active(self):
+        from src.agents.registry import AgentRegistry
+        from src.colony_types.models import AgentState
+        from src.swarm.parked_agents import ParkedAgentRegistry
+
+        class _FakeAgent:
+            def __init__(self, state):
+                self.state = state
+
+        woken = []
+
+        def _wake(event):
+            woken.append(event)
+
+        orch = self._make_orch()
+        reg = AgentRegistry()
+        agent = _FakeAgent(AgentState.SUSPENDED)
+        reg._agents["a1"] = agent
+        parked = ParkedAgentRegistry()
+        orch.wire(agent_registry=reg, parked_registry=parked, park_wake=_wake)
+
+        self.loop.run_until_complete(orch._sync_parked_agents())
+        self.assertEqual(woken, [])  # parking never wakes
+
+        agent.state = AgentState.ACTIVE  # agent returns to work
+        self.loop.run_until_complete(orch._sync_parked_agents())
+        self.assertFalse(parked.is_parked("a1"))
+        self.assertEqual(len(woken), 1)
+
 
 class TestLifecycleRecorder(unittest.TestCase):
     """LifecycleRecorder — colony awareness tests."""
