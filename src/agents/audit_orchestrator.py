@@ -190,7 +190,7 @@ class AuditOrchestrator:
         results = await asyncio.gather(*agent_tasks, return_exceptions=True)
 
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.warning("Agent failed: %s", result)
                 continue
             self._findings.extend(result)
