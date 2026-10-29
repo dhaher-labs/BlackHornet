@@ -51,7 +51,7 @@ class LLMRouterBridge:
             os.path.join(os.path.dirname(__file__), "..", "llm_router"),
         )
         self.node_path = self.config.get("node_path", "node")
-        self._process: Optional[subprocess.Popen] = None
+        self._process: Optional[asyncio.subprocess.Process] = None
         self._ready = False
         self._timeout = self.config.get("timeout", 60)
         self._use_node = self.config.get("use_node", self._check_node_available())
@@ -149,12 +149,14 @@ class LLMRouterBridge:
         import time
         start_time = time.time()
 
+        process = self._process
+        assert process is not None and process.stdin is not None and process.stdout is not None
         request_json = json.dumps(request) + "\n"
-        self._process.stdin.write(request_json.encode())
-        await self._process.stdin.drain()
+        process.stdin.write(request_json.encode())
+        await process.stdin.drain()
 
         response_line = await asyncio.wait_for(
-            self._process.stdout.readline(),
+            process.stdout.readline(),
             timeout=self._timeout,
         )
 
@@ -192,6 +194,7 @@ class LLMRouterBridge:
         start_time = time.time()
 
         try:
+            assert self._fallback_provider is not None
             result = await self._fallback_provider.chat(
                 messages=messages,
                 temperature=kwargs.get("temperature", 0.7),
@@ -230,12 +233,14 @@ class LLMRouterBridge:
         if not self._use_node or not self._process:
             return [{"name": "python-fallback", "status": "available"}]
 
+        process = self._process
+        assert process.stdin is not None and process.stdout is not None
         request = json.dumps({"type": "get_providers"}) + "\n"
-        self._process.stdin.write(request.encode())
-        await self._process.stdin.drain()
+        process.stdin.write(request.encode())
+        await process.stdin.drain()
 
         response = await asyncio.wait_for(
-            self._process.stdout.readline(),
+            process.stdout.readline(),
             timeout=10,
         )
         result = json.loads(response.decode())
