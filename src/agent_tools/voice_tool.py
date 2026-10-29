@@ -103,7 +103,7 @@ def _convert_audio_format(
 
     # Try pydub for MP3/OGG conversions
     try:
-        from pydub import AudioSegment
+        from pydub import AudioSegment  # type: ignore[import-untyped]
         segment = AudioSegment.from_file(io.BytesIO(input_data), format=input_format)
         out_buf = io.BytesIO()
         segment.export(out_buf, format=output_format)
@@ -399,7 +399,7 @@ class VoiceTool(BaseTool):
     ) -> Optional[ToolResult]:
         """Synthesize using local pyttsx3 engine."""
         try:
-            import pyttsx3
+            import pyttsx3  # type: ignore[import-untyped]
 
             engine = pyttsx3.init()
 

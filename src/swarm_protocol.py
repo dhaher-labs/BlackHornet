@@ -325,7 +325,7 @@ class SwarmProtocol:
         """Check if a newer version exists in the source repo."""
         try:
             # Check GitHub releases/tags
-            import requests
+            import requests  # type: ignore[import-untyped]
             api_url = self.identity.repo_url.replace(
                 "github.com", "api.github.com/repos"
             ) + "/releases/latest"

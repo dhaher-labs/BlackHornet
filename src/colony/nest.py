@@ -337,7 +337,7 @@ class SelfNest:
 
     def _get_cpu_usage(self) -> float:
         try:
-            import psutil
+            import psutil  # type: ignore[import-untyped]
             return psutil.cpu_percent(interval=0)
         except ImportError:
             try:

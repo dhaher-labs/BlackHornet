@@ -10,7 +10,7 @@ import os
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 import logging
 

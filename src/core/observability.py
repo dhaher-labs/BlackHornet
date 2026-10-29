@@ -52,11 +52,11 @@ _ObservableGauge = None
 _TelemetryProvider = None
 
 try:
-    from opentelemetry import trace, metrics  # type: ignore[import-untyped]
-    from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-untyped]
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore[import-untyped]
-    from opentelemetry.sdk.metrics import MeterProvider  # type: ignore[import-untyped]
-    from opentelemetry.sdk.resources import Resource  # type: ignore[import-untyped]
+    from opentelemetry import trace, metrics  # type: ignore[import-not-found]
+    from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore[import-not-found]
+    from opentelemetry.sdk.metrics import MeterProvider  # type: ignore[import-not-found]
+    from opentelemetry.sdk.resources import Resource  # type: ignore[import-not-found]
     _OTEL_AVAILABLE = True
     logger.info("OpenTelemetry packages available — observability can be enabled.")
 except ImportError:
@@ -270,7 +270,7 @@ class ObservabilityManager:
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         if otlp_endpoint:
             try:
-                from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # type: ignore[import-untyped]
+                from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # type: ignore[import-not-found]
                     OTLPSpanExporter,
                 )
                 tracer_provider.add_span_processor(

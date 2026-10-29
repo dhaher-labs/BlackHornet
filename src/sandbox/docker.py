@@ -57,7 +57,7 @@ class DockerSandbox:
             The container ID.
         """
         try:
-            import docker
+            import docker  # type: ignore[import-untyped]
             client = docker.from_env()
 
             container = client.containers.run(

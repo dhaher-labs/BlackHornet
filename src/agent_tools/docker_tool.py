@@ -156,7 +156,7 @@ class DockerTool(BaseTool):
             )
 
         try:
-            import docker
+            import docker  # type: ignore[import-untyped]
             client = docker.from_env()
             client.ping()  # Verify daemon is responsive
             self._docker_available = True
