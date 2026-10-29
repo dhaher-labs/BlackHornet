@@ -151,6 +151,11 @@ class TelegramChannel(BaseChannel):
         self._bot: Optional[Any] = None
         self._app: Optional[Any] = None
         self._inbound_queue: asyncio.Queue[InboundMessage] = asyncio.Queue()
+        cfg = config or {}
+        self._api_url: str = str(cfg.get("api_url", "https://api.telegram.org")).rstrip("/")
+        self._allowed_chat_ids: list[str] = [str(c).strip() for c in cfg.get("allowed_chat_ids", []) if str(c).strip()]
+        self._poll_timeout: int = int(cfg.get("poll_timeout_s", 25))
+        self._poll_task: Optional[asyncio.Task[None]] = None
 
     async def start(self) -> None:
         """Start the Telegram bot."""
@@ -186,10 +191,21 @@ class TelegramChannel(BaseChannel):
 
         except ImportError:
             logger.warning("telegram_sdk_not_installed", message="pip install python-telegram-bot")
-            self._running = True  # Mark as running for graceful degradation
+            # Fallback: aiohttp long-polling loop so the channel still truly
+            # connects (documented behavior) instead of a no-op "running" flag.
+            self._poll_task = asyncio.create_task(self._poll_loop())
+            self._running = True
 
     async def stop(self) -> None:
         """Stop the Telegram bot."""
+        self._running = False
+        if self._poll_task and not self._poll_task.done():
+            self._poll_task.cancel()
+            try:
+                await self._poll_task
+            except asyncio.CancelledError:
+                pass
+        self._poll_task = None
         if self._app:
             try:
                 if self._app.updater and self._app.updater.running:
@@ -198,7 +214,6 @@ class TelegramChannel(BaseChannel):
                 await self._app.shutdown()
             except Exception as e:
                 logger.warning("telegram_stop_error", error=str(e))
-        self._running = False
 
     async def send(self, message: OutboundMessage) -> bool:
         """Send a message via Telegram."""
@@ -221,7 +236,7 @@ class TelegramChannel(BaseChannel):
         """Send via Telegram Bot API as fallback."""
         try:
             import aiohttp
-            url = f"https://api.telegram.org/bot{self._bot_token}/sendMessage"
+            url = f"{self._api_url}/bot{self._bot_token}/sendMessage"
             payload = {
                 "chat_id": message.recipient_id,
                 "text": message.content,
@@ -244,6 +259,89 @@ class TelegramChannel(BaseChannel):
             return self._inbound_queue.get_nowait()
         except asyncio.QueueEmpty:
             return None
+
+    # ------------------------------------------------------------------
+    # aiohttp long-polling fallback (works without python-telegram-bot)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_inbound(update: dict[str, Any]) -> Optional[InboundMessage]:
+        """Map a raw Telegram update dict to an InboundMessage (text only)."""
+        message = update.get("message") or {}
+        text = message.get("text")
+        if not text:
+            return None
+        chat = message.get("chat") or {}
+        sender = message.get("from") or {}
+        return InboundMessage(
+            channel_type="telegram",
+            channel_id=str(chat.get("id", "")),
+            sender_id=str(sender.get("id", "")),
+            sender_name=sender.get("username") or sender.get("first_name"),
+            content=str(text),
+        )
+
+    @staticmethod
+    def _chat_allowed(channel_id: str, allowed_chat_ids: list[str]) -> bool:
+        """Return True when the allowlist is empty or the chat is whitelisted."""
+        if not allowed_chat_ids:
+            return True
+        return channel_id in allowed_chat_ids
+
+    @staticmethod
+    def _next_offset(updates: list[dict[str, Any]], current: int) -> int:
+        """Advance the getUpdates offset past the highest update_id seen."""
+        highest = current
+        for update in updates:
+            try:
+                highest = max(highest, int(update.get("update_id", 0)) + 1)
+            except (TypeError, ValueError):
+                continue
+        return highest
+
+    async def _poll_loop(self) -> None:
+        """Long-poll ``getUpdates`` via aiohttp until the channel is stopped."""
+        import aiohttp
+
+        offset = 0
+        error_backoff_s = 5
+        try:
+            timeout = aiohttp.ClientTimeout(total=self._poll_timeout + 10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                while self._running:
+                    url = f"{self._api_url}/bot{self._bot_token}/getUpdates"
+                    params = {"timeout": str(self._poll_timeout), "offset": str(offset)}
+                    try:
+                        async with session.get(url, params=params) as resp:
+                            data = await resp.json(content_type=None)
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as exc:
+                        logger.warning(
+                            "telegram_poll_request_error",
+                            channel_id=self.channel_id,
+                            error=str(exc),
+                        )
+                        await asyncio.sleep(error_backoff_s)
+                        continue
+                    updates: list[dict[str, Any]] = []
+                    if isinstance(data, dict) and data.get("ok"):
+                        raw = data.get("result")
+                        if isinstance(raw, list):
+                            updates = [u for u in raw if isinstance(u, dict)]
+                    else:
+                        logger.error("telegram_poll_bad_response", channel_id=self.channel_id)
+                        await asyncio.sleep(error_backoff_s)
+                        continue
+                    offset = self._next_offset(updates, offset)
+                    for update in updates:
+                        inbound = self._extract_inbound(update)
+                        if inbound and self._chat_allowed(inbound.channel_id, self._allowed_chat_ids):
+                            await self._inbound_queue.put(inbound)
+                            await self._dispatch_inbound(inbound)
+        except asyncio.CancelledError:
+            logger.info("telegram_poll_stopped", channel_id=self.channel_id)
+            raise
 
 
 class DiscordChannel(BaseChannel):
@@ -524,8 +622,7 @@ def create_channel(channel_type: str, **kwargs: Any) -> BaseChannel:
     cls = channel_map.get(channel_type)
     if cls is None:
         raise ChannelError(
-            f"Unsupported channel type: {channel_type}. Supported: {list(channel_map.keys())}",
-            channel_type=channel_type,
+            f"Unsupported channel type: {channel_type}. Supported: {list(channel_map.keys())}"
         )
 
     return cls(**kwargs)
