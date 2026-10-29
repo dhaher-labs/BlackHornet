@@ -417,16 +417,7 @@ class PermissionEngine:
             and current_level == AutonomyLevel.L0_READONLY
             and requested_level == AutonomyLevel.L1_SAFE_OPS
         ):
-            record = self._grant_escalation(
-                agent_id=agent_id,
-                colony_id=colony_id,
-                from_level=current_level,
-                to_level=requested_level,
-                reason=justification,
-                auto_approved=True,
-                ttl=ttl or self._escalation_default_ttl,
-            )
-            return ApprovalRequest(
+            approval = ApprovalRequest(
                 agent_id=agent_id,
                 colony_id=colony_id,
                 current_level=current_level,
@@ -435,8 +426,18 @@ class PermissionEngine:
                 task_context=task_context or {},
                 approved=True,
                 auto_approved=True,
-                approval_request_id=record.record_id,
             )
+            self._grant_escalation(
+                agent_id=agent_id,
+                colony_id=colony_id,
+                from_level=current_level,
+                to_level=requested_level,
+                reason=justification,
+                auto_approved=True,
+                ttl=ttl or self._escalation_default_ttl,
+                approval_request_id=approval.request_id,
+            )
+            return approval
 
         # Require approval
         request = ApprovalRequest(

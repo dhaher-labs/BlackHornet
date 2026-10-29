@@ -109,12 +109,15 @@ class HermesMemoryBridge:
         tags: Optional[List[str]] = None,
         query: str = "",
         limit: int = 20,
+        session_id: str = "",
     ) -> List[Dict[str, Any]]:
         """Query memories across all tiers."""
         results = []
 
         for rec in self._records.values():
             if agent_id and rec.agent_id != agent_id:
+                continue
+            if session_id and rec.session_id != session_id:
                 continue
             if memory_type and rec.memory_type != memory_type:
                 continue
