@@ -26,7 +26,7 @@ import logging
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -88,7 +88,7 @@ class ImmortalDaemon:
 
     def check_ecosystem_health(self) -> Dict:
         """Check all ecosystem repos for health."""
-        status = {
+        status: Dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "repos": {},
             "agents_alive": 0,
@@ -106,7 +106,7 @@ class ImmortalDaemon:
         # Check each repo
         for repo in ECOSYSTEM_REPOS:
             repo_dir = BASE_DIR if repo == "blackhornet" else HERMES_HOME / "spawns" / repo
-            repo_status = {
+            repo_status: Dict[str, Any] = {
                 "exists": repo_dir.exists(),
                 "is_git": (repo_dir / ".git").exists() if repo_dir.exists() else False,
                 "has_bootstrap": (repo_dir / "scripts" / "bootstrap.sh").exists() if repo_dir.exists() else False,
@@ -125,7 +125,8 @@ class ImmortalDaemon:
                         repo_status["last_commit"] = r.stdout.strip()[:100]
 
                     # Check if behind origin (don't fail if no remote)
-                    r = subprocess.run(
+                    # Result intentionally discarded; call kept for side effects.
+                    subprocess.run(
                         ["git", "-C", str(repo_dir), "fetch", "--dry-run"],
                         capture_output=True, timeout=15
                     )
@@ -158,7 +159,7 @@ class ImmortalDaemon:
             capture_output=True, timeout=30
         )
         if r.returncode != 0:
-            logger.error(f"Git pull failed for {repo}: {r.stderr}")
+            logger.error(f"Git pull failed for {repo}: {r.stderr.decode(errors='replace')}")
             return False
 
         # Install deps if requirements.txt exists
