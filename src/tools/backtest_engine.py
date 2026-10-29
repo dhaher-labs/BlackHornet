@@ -232,14 +232,14 @@ class BacktestEngine:
                     "lows": lows[:i+1], "volumes": volumes[:i+1]
                 })
                 if signal and signal.get("direction"):
-                    trade = self.execute_trade(
+                    new_trade = self.execute_trade(
                         symbol, signal["direction"], signal["entry"],
                         signal["stop_loss"], signal["take_profit"],
                         signal.get("lot_size", 0.01), volatility,
                         candle.get("time", "")
                     )
-                    if trade:
-                        open_trades.append(trade)
+                    if new_trade:
+                        open_trades.append(new_trade)
             except Exception:
                 pass
 
