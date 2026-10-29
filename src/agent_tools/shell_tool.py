@@ -16,7 +16,7 @@ from typing import Any, Optional
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool
 from src.exceptions import ToolExecutionError, ToolTimeoutError, ToolPermissionError
-from src.bh_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
+from src.colony_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
 
 logger = get_logger(__name__)
 
@@ -82,10 +82,9 @@ class ShellTool(BaseTool):
 
         # Security: optional allowlist mode
         self._allowed_commands = self._config.get("allowed_commands", None)
+        self._allowed_set: Optional[set[str]] = None
         if self._allowed_commands:
             self._allowed_set = set(self._allowed_commands)
-        else:
-            self._allowed_set = None
 
         # Track recent command history for rate limiting
         self._command_history: list[tuple[float, str]] = []
