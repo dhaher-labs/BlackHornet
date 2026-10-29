@@ -14,7 +14,7 @@ from typing import Any, Optional
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool
 from src.bh_types.messages import InboundMessage, MessageType, OutboundMessage
-from src.bh_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
+from src.colony_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
 
 logger = get_logger(__name__)
 

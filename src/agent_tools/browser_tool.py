@@ -23,7 +23,7 @@ from src.browser.stealth import StealthConfig, apply_stealth
 from src.config.logging_config import get_logger
 from src.core.tool_base import BaseTool
 from src.exceptions import ToolExecutionError
-from src.bh_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
+from src.colony_types.tools import ToolCall, ToolDefinition, ToolParameter, ToolResult, ToolType
 
 logger = get_logger(__name__)
 
@@ -47,9 +47,11 @@ def _html_to_markdown(html: str) -> str:
 
     # Headings
     for i in range(1, 7):
+        def heading_repl(m: re.Match[str], lvl: int = i) -> str:
+            return "\n" + "#" * lvl + " " + m.group(1).strip() + "\n"
         html = re.sub(
             rf"<h{i}[^>]*>(.*?)</h{i}>",
-            lambda m, lvl=i: "\n" + "#" * lvl + " " + m.group(1).strip() + "\n",
+            heading_repl,
             html, flags=re.DOTALL | re.IGNORECASE,
         )
 
