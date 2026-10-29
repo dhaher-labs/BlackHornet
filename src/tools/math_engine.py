@@ -132,12 +132,18 @@ class MathEngine:
         percent_b: List[Optional[float]] = [None] * len(closes)
 
         for i in range(period - 1, len(closes)):
+            m = middle[i]
+            if m is None:
+                continue
             slice_data = closes[i - period + 1:i + 1]
-            std = math.sqrt(sum((x - middle[i]) ** 2 for x in slice_data) / period)
-            upper[i] = middle[i] + num_std * std
-            lower[i] = middle[i] - num_std * std
-            bandwidth[i] = (upper[i] - lower[i]) / middle[i] if middle[i] else 0
-            percent_b[i] = (closes[i] - lower[i]) / (upper[i] - lower[i]) if (upper[i] - lower[i]) else 0.5
+            std = math.sqrt(sum((x - m) ** 2 for x in slice_data) / period)
+            u = m + num_std * std
+            lo = m - num_std * std
+            upper[i] = u
+            lower[i] = lo
+            bandwidth[i] = (u - lo) / m if m else 0
+            spread = u - lo
+            percent_b[i] = (closes[i] - lo) / spread if spread else 0.5
 
         return {
             "middle": middle, "upper": upper, "lower": lower,
@@ -152,7 +158,7 @@ class MathEngine:
     def atr(highs: List[float], lows: List[float], closes: List[float],
             period: int = 14) -> List[Optional[float]]:
         """Average True Range (Wilder's)"""
-        result = [None] * len(closes)
+        result: List[Optional[float]] = [None] * len(closes)
         if len(closes) < 2:
             return result
 
@@ -171,7 +177,9 @@ class MathEngine:
 
         result[period] = sum(true_ranges[1:period + 1]) / period
         for i in range(period + 1, len(true_ranges)):
-            result[i] = (result[i - 1] * (period - 1) + true_ranges[i]) / period
+            prev = result[i - 1]
+            assert prev is not None
+            result[i] = (prev * (period - 1) + true_ranges[i]) / period
 
         return result
 
