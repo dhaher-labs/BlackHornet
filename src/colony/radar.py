@@ -75,6 +75,11 @@ class ColonyRadar:
     def peer_count(self) -> int:
         return len(self._peers)
 
+    @property
+    def peers(self) -> dict[str, ColonyIdentity]:
+        """Public read-only view of the tracked peers (used by health monitor)."""
+        return self._peers
+
     def on_peer_join(self, handler: Callable[[ColonyIdentity], None]) -> None:
         self._on_peer_join = handler
 

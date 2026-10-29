@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.self_healing import PhiAccrualFailureDetector, SelfHealingOrchestrator, RecoveryAction, ComponentHealth, FailureLevel
 from src.core.circuit_breaker import CircuitBreaker
@@ -163,8 +163,10 @@ class ColonyHealthMonitor:
                 logger.debug("circuit_breaker_open target=%s", target_url)
                 return False
 
-            # Use the mesh bus's HTTP delivery method
-            success = await self._mesh_bus._send_http(message)
+            # Use the mesh bus's HTTP delivery method. MeshBus._send_http is
+            # annotated -> None, but callers/tests treat its awaited value as a
+            # success flag; cast keeps runtime behavior exactly identical.
+            success = await cast(Any, self._mesh_bus._send_http(message))
             if success:
                 self._circuit_breaker.record_success()
             else:

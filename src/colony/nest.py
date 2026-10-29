@@ -79,6 +79,11 @@ class SelfNest:
             return time.time() - self._start_time
         return 0.0
 
+    @property
+    def components(self) -> dict[str, ComponentStatus]:
+        """Public read-only view of the registered components (used by health monitor)."""
+        return self._components
+
     async def bootstrap(self) -> None:
         logger.info("nest_bootstrap_starting name=%s", self._config.name)
 
