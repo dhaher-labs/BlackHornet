@@ -22,6 +22,31 @@ quant, immortal-daemon shell line, colony ecosystem v2) in which several headlin
 features were stubs or unimportable. v7 keeps the subsystems that actually work,
 drops the rest, and labels the experimental remainder honestly.
 
+### 1.1 System context at a glance
+
+```mermaid
+flowchart TB
+    U["Operator / client (TUI, curl, browser)"]
+    subgraph BH["BlackHornet — stdlib web server :8080"]
+        WS["ui/web_server"]
+        AB["ui/api_bridge — the ONE REST API"]
+        ORCH["colony EcosystemOrchestrator"]
+        MEM["memory MemorySystem SQLite+FTS5"]
+        STATE["bh_types EcosystemState (canonical)"]
+    end
+    LLM[("public keyless LLM endpoints")]
+    YF[("Yahoo Finance — yfinance, PAPER only")]
+    U -->|"HTTP :8080"| WS --> AB
+    AB --> ORCH
+    AB -->|"GET /api/v1/ecosystem"| STATE
+    ORCH --> MEM
+    ORCH --> JB["colony/jeumpa_brain — 5 keyless providers"] --> LLM
+    HQ["hermes_quant paper-trading loop"] --> YF
+```
+
+The Rust runtime (`rust/`, §4.1) attaches to this picture through the UDS bridge
+protocol — it never replaces a Python subsystem in place.
+
 ## 2. Module map (v7 target)
 
 ```
@@ -30,11 +55,17 @@ blackhornet/
 ├── requirements.txt          # slim, declared-only deps (pydantic >=2,<3)
 ├── hermes.sh / deploy.sh     # service control + watchdog
 ├── Dockerfile / docker-compose.yml / deploy/   # container deploys (non-root)
+├── rust/                     # Rust workspace (Phase 1–5, §4.1): bh-rtd daemon,
+│                             #   bh-bridge-uds (protocol v1), bh-mcp-bridge
 ├── src/
 │   ├── colony/               # ECOSYSTEM CORE: EcosystemOrchestrator, ColonyRadar (UDP),
 │   │   │                     #   MeshBus, SelfNest, QueenAgent, jeumpa_brain.py
 │   │   └── orchestration/    # sub_agent, role_orchestrator, plan_layer, pool, rpc_pipeline
-│   ├── bh_types/             # the ONE type system (incl. canonical EcosystemState)
+│   ├── agents/               # agent implementations (browser, coder, colony,
+│   │                         #   executor, … — see MODULE_GRAPH fan-in)
+│   ├── colony_types/         # canonical CORE type system (agents/tasks/events/tools
+│   │                         #   models) — type duality with bh_types, ADR-002
+│   ├── bh_types/             # ecosystem-surface type system (canonical EcosystemState)
 │   ├── memory/               # SQLite+FTS5 7-module system + MemoryFederation
 │   ├── core/                 # consensus_engine, debate_arena, ast_sanitizer,
 │   │   │                     #   self_healing (phi-accrual), llm_provider, workforce
@@ -49,8 +80,10 @@ blackhornet/
 │   ├── ui/                   # stdlib web_server (:8080) + api_bridge (the ONE API/UI)
 │   ├── integration/          # unified_launcher (bh-colony entrypoint)
 │   ├── config/, security/, sandbox/, thinking/   # supporting modules
+│   ├── auto_discovery/, browser/, plugins/       # discovery, browser agent, plugins
 │   ├── hermes_quant.py       # paper-trading main loop (L1–L5)
-│   └── immortal_daemon.py, watchdog.py, swarm_protocol.py   # ops line
+│   └── immortal_daemon.py, watchdog.py, swarm_protocol.py,   # ops line — 10 loose
+│       colony_bridge.py, memory_bridge.py, user_alignment.py, upgrade_loop.py   # root modules
 ├── tests/                    # pytest suite (474 passed / 28 skipped as of the Task 21 tidy, 2026-10-29)
 ├── docs/                     # this doc, numbered tree, changelog
 └── PLAN.md                   # rebuild plan + Rust roadmap
@@ -138,6 +171,47 @@ flowchart LR
     AT --> SH
 ```
 
+### 4.1 Rust runtime (bh-rtd) — strangler-fig topology (Phase 1–5)
+
+Rust side of the Infinity strangler-fig plan (`PLAN.md` §4). Posture: **adopt the
+protocol, embed the runtime, never port the colony.** `BH_RUNTIME=python` remains
+the default and fails closed on unknown values; the Python colony stays fully
+working at every phase. Workspace: edition 2024, MSRV 1.85, infinity pinned
+exactly `=0.2.0` (pre-1.0 churn guard).
+
+| Crate | Role |
+|---|---|
+| `bh-bridge-uds` | BH bridge protocol v1 — UTF-8 JSON, one value per `\n`-terminated line over a Unix domain socket, **one request per connection**; `{id, ok, result\|error}` with JSON-RPC-flavoured error codes; `ok:false` reserved for bridge failures, business failures ride inside `result` |
+| `bh-mcp-bridge` | Infinity agent wiring — `JeumpaProvider` implements the real `infinity_provider_protocol::ModelProvider`, bridged to the Python `JeumpaBrain` via the UDS peer; BH tool catalog as Infinity tools |
+| `bh-rtd` | `RuntimeFlavor {Python, Rust}` env gate (default Python, fail-closed), `AgentHost` contract (`ColdHost` = fail-loud placeholder), daemon with `tools/list` + `tools/call` routing, watchdog/heartbeat on `health`/`list_threads`, native RAP tools (file / shell.execute / search.web) in-process |
+
+```mermaid
+flowchart LR
+    subgraph PY["Python colony (default runtime)"]
+        MS["memory/system MemorySystem"]
+        JB["jeumpa_brain JeumpaBrain"]
+    end
+    subgraph RS["Rust workspace — BH_RUNTIME=rust"]
+        D["bh-rtd daemon: health, list_threads, tools/call"]
+        MCP["bh-mcp-bridge: JeumpaProvider + tool catalog"]
+        UDS["bh-bridge-uds — protocol v1"]
+        INF[("infinity-agent-core 0.2.0")]
+    end
+    D --> UDS
+    MCP --> UDS
+    MCP --> INF
+    UDS -->|"memory.* methods"| MS
+    UDS -->|"jeumpa.chat_messages"| JB
+```
+
+Exit criteria are exercised by tests, not claims: Phase 1 runs a full offline
+tool-calling turn with a real Infinity agent (`crates/bh-mcp-bridge/tests/agent_wiring.rs`);
+Phase 3 proves a hibernating agent persists into BH memory and wakes intact
+(UDS peer wraps the existing memory stack); Phase 5 runs the Python/Rust parity
+suite against the **real** `bh-rtd` binary (`tests/test_rtd_parity.py`,
+`tests/test_rtd_launcher.py`). The trading money-path is excluded from migration
+until Phase 5+.
+
 ## 5. Runtime data flows
 
 ### 5.1 Agent turn — Queen command → intelligence → memory/state
@@ -211,6 +285,8 @@ pre-v7 config were labels without implementations and are gone in v7.
 | **Omega Engine + Council** | **EXPERIMENTAL / SIMULATED** — boot, constitution, scoring are real bookkeeping; the plan→execute loop and 15-persona votes return template strings and produce no real work. Do not rely on it until the debaters are LLM-backed |
 | **SAMAN governance engine** | ENGINE REAL, DEBATERS SIMULATED — consensus math (score ≥ 0.85, 3 rounds, fail-closed) is genuine; wired debaters are stubs |
 | Unified launcher | REAL but partial — starts the dashboard/API/memory stack; does not start the colony orchestrator, trading bot, or omega |
+| Rust workspace (bh-rtd, bridges) | REAL — offline Infinity wiring turn, UDS memory peer wake-intact proof, daemon RAP tools, parity suite over the real binary (§4.1); still `BH_RUNTIME=python` default, no production Rust deployment yet |
+| `scripts/gen_arch_graph.py` + MODULE_GRAPH | REAL — stdlib AST scanner, deterministic generated dependency graph (docs/02-arch/MODULE_GRAPH.md) |
 
 The repo-wide "fake success" pattern (modules returning plausible canned strings)
 is banned in v7: components must return explicit degraded/failed states.
@@ -240,7 +316,7 @@ Dropped by the rebuild (rationale and per-item risk analysis in `PLAN.md` §2):
 | `src/channels/` | Import-crashed at class-definition time |
 | `src/mcp/` + `mcp_tool.py` | Import-crashed (pydantic v1/v2 clash); superseded by the roadmap's MCP-bridge plan |
 | `src/llm_router/*.mjs`, `src/delta/*.mjs` | Node islands unreachable from Python |
-| `src/colony_types/` | Duplicate type system vs `bh_types/` |
+| ~~`src/colony_types/`~~ | **NOT removed — verdict inverted by ADR-002 (2026-10-28):** the audit's "duplicate" call was wrong; `colony_types/` is the live canonical core type system (~41+ importers), `bh_types/` serves the ecosystem surface. Type duality is documented, not deleted |
 | `src/integrations/` | Twin of `src/integration/`; served only the orphaned API |
 | 102 template agents (`audit/*`, `specialists/*`) | Near-identical generated files, zero unique behavior |
 | `skills/`, loose daemon `scripts/` | Tooling artifacts / overlapping daemons, not product code |
@@ -270,7 +346,7 @@ keep the suite green.
 2. Jeumpa providers are free public endpoints: availability and output quality vary.
 3. Single-node colony: radar/mesh have no second instance to talk to out of the box.
 4. Trading backtest engine is simplistic; yfinance is the only live data source.
-5. No CI pipeline runs the suite yet; tests are local-gated.
+5. GitHub Actions CI (`.github/workflows/ci.yml`) runs ruff, pytest (3.11/3.12), mypy and `cargo test` on push/PR — but the **local pytest suite remains the hard gate** for every change; CI is a net, not the gate.
 
 ## 12. Roadmap
 
