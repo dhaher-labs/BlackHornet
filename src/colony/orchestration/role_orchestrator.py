@@ -83,7 +83,7 @@ class RoleOrchestrator:
         self.state = type("State", (), {"active_tasks": {}})()
         self._task_queue = InMemoryTaskQueue()
 
-    def assign_role(self, agent_id: str, role: RoleType, capabilities: List[str] = None):
+    def assign_role(self, agent_id: str, role: RoleType, capabilities: Optional[List[str]] = None):
         self.roles[agent_id] = AgentRole(agent_id=agent_id, role=role, capabilities=capabilities or [])
 
     def get_agents_by_role(self, role: RoleType) -> List[AgentRole]:

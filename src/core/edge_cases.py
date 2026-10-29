@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar('T')
 
 
-def safe_execute(default_return: T = None, log_level: str = "warning"):
+def safe_execute(default_return: Optional[T] = None, log_level: str = "warning"):
     """Decorator that catches exceptions and returns default"""
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)

@@ -56,7 +56,7 @@ class GraphifyPipeline:
     def off(self, event_type: str, handler: EventHandler):
         self._handlers.get(event_type, []).remove(handler)
 
-    def emit(self, event_type: str, source: str = "", data: Dict[str, Any] = None):
+    def emit(self, event_type: str, source: str = "", data: Optional[Dict[str, Any]] = None):
         event = GraphifyEvent(
             event_type=event_type,
             source=source,

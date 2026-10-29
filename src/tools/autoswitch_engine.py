@@ -122,7 +122,7 @@ class AutoSwitchEngine:
         })
 
     def record_failure(self, provider_name: str, error: str = "",
-                        status_code: int = None):
+                        status_code: Optional[int] = None):
         """Record failed API call"""
         if provider_name not in self.providers:
             self.register_provider(provider_name)

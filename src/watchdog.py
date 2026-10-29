@@ -20,6 +20,7 @@ import subprocess
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 # Configuration
 BASE_DIR = Path(__file__).parent.parent.resolve()
@@ -238,7 +239,7 @@ class HermesWatchdog:
             self.log(f"Failed to start Hermes: {e}", "ERROR")
             return False
 
-    def update_health(self, status: str, details: dict = None):
+    def update_health(self, status: str, details: Optional[dict] = None):
         """Update health status file"""
         health = {
             "status": status,

@@ -1,12 +1,12 @@
 """Colony type definitions."""
 
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 
 class AgentRole:
     """Agent role definition."""
-    def __init__(self, role_id: str, role_type: str, capabilities: List[str] = None):
+    def __init__(self, role_id: str, role_type: str, capabilities: Optional[List[str]] = None):
         self.id = role_id
         self.role_type = role_type
         self.capabilities = capabilities or []
