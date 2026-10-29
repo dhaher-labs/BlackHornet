@@ -453,8 +453,9 @@ class RedisBackend(PersistenceBackend):
         return key
 
     def get(self, key: str) -> Optional[Any]:
+        client: Any = self._client  # redis dual sync/async typing
         try:
-            data = self._client.get(self._prefixed(key))
+            data = client.get(self._prefixed(key))
             if data is None:
                 return None
             return json.loads(data)
@@ -463,43 +464,48 @@ class RedisBackend(PersistenceBackend):
             return None
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        client: Any = self._client  # redis dual sync/async typing
         try:
             serialized = json.dumps(value, default=str)
             px = None
             if ttl is not None:
                 px = ttl * 1000  # Redis uses milliseconds for PX
-            return self._client.set(self._prefixed(key), serialized, px=px)
+            return client.set(self._prefixed(key), serialized, px=px)
         except (TypeError, Exception) as e:
             logger.warning("Redis SET failed for key %s: %s", key, e)
             return False
 
     def delete(self, key: str) -> bool:
+        client: Any = self._client  # redis dual sync/async typing
         try:
-            return self._client.delete(self._prefixed(key)) > 0
+            return client.delete(self._prefixed(key)) > 0
         except Exception as e:
             logger.warning("Redis DELETE failed for key %s: %s", key, e)
             return False
 
     def exists(self, key: str) -> bool:
+        client: Any = self._client  # redis dual sync/async typing
         try:
-            return self._client.exists(self._prefixed(key)) > 0
+            return client.exists(self._prefixed(key)) > 0
         except Exception as e:
             logger.warning("Redis EXISTS failed for key %s: %s", key, e)
             return False
 
     def keys(self, pattern: str = "*") -> List[str]:
+        client: Any = self._client  # redis dual sync/async typing
         try:
             prefixed_pattern = self._prefixed(pattern)
-            raw_keys = self._client.keys(prefixed_pattern)
+            raw_keys = client.keys(prefixed_pattern)
             return [self._unprefixed(k) for k in raw_keys]
         except Exception as e:
             logger.warning("Redis KEYS failed for pattern %s: %s", pattern, e)
             return []
 
     def health_check(self) -> Dict[str, Any]:
+        client: Any = self._client  # redis dual sync/async typing
         try:
-            self._client.ping()
-            info = self._client.info("server")
+            client.ping()
+            info = client.info("server")
             return {
                 "healthy": True,
                 "backend": "RedisBackend",
