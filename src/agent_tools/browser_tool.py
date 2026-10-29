@@ -464,7 +464,7 @@ class BrowserTool(BaseTool):
                     "els => els.map(e => ({text: e.innerText.trim(), href: e.href}))",
                 )
                 content = "\n".join(
-                    f"- [{l.get('text', 'N/A')}]({l.get('href', '')})" for l in links[:200]
+                    f"- [{link.get('text', 'N/A')}]({link.get('href', '')})" for link in links[:200]
                 )
             elif extract_type == "images":
                 images = await self._page.eval_on_selector_all(

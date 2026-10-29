@@ -211,7 +211,7 @@ class MathEngine:
             period: int = 20) -> List[Optional[float]]:
         """Commodity Channel Index"""
         result = [None] * len(closes)
-        tp = [(h + l + c) / 3 for h, l, c in zip(highs, lows, closes)]
+        tp = [(high + low + close) / 3 for high, low, close in zip(highs, lows, closes)]
         tp_sma = MathEngine.sma(tp, period)
 
         for i in range(period - 1, len(closes)):

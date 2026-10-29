@@ -340,13 +340,13 @@ class CodeTool(MCPTool):
         """Basic Python static analysis."""
         lines = code.splitlines()
         total_lines = len(lines)
-        code_lines = sum(1 for l in lines if l.strip() and not l.strip().startswith("#"))
-        comment_lines = sum(1 for l in lines if l.strip().startswith("#"))
+        code_lines = sum(1 for line in lines if line.strip() and not line.strip().startswith("#"))
+        comment_lines = sum(1 for line in lines if line.strip().startswith("#"))
         blank_lines = total_lines - code_lines - comment_lines
 
         # Count functions and classes
-        func_count = sum(1 for l in lines if l.strip().startswith("def "))
-        class_count = sum(1 for l in lines if l.strip().startswith("class "))
+        func_count = sum(1 for line in lines if line.strip().startswith("def "))
+        class_count = sum(1 for line in lines if line.strip().startswith("class "))
 
         # Simple cyclomatic complexity: count branching keywords
         complexity_keywords = ["if ", "elif ", "else:", "for ", "while ", "except ", "and ", "or "]
@@ -357,7 +357,7 @@ class CodeTool(MCPTool):
                     complexity += 1
 
         # Imports
-        imports = [l.strip() for l in lines if l.strip().startswith("import ") or l.strip().startswith("from ")]
+        imports = [line.strip() for line in lines if line.strip().startswith("import ") or line.strip().startswith("from ")]
 
         return {
             "success": True,
