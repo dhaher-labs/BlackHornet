@@ -20,7 +20,7 @@ import struct
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from src.config.logging_config import get_logger
 from src.colony_types._pydantic_compat import model_dump, model_validate
@@ -30,6 +30,9 @@ from src.colony_types.colony_ecosystem import (
     RadarSignal,
     RadarSignalType,
 )
+
+if TYPE_CHECKING:
+    from src.colony.health_monitor.health_monitor import ColonyHealthMonitor
 
 logger = get_logger(__name__)
 

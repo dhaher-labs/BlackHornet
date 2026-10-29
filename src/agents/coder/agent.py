@@ -331,7 +331,7 @@ class CoderAgent(BaseAgent):
     # Reflexion self-improvement
     # ------------------------------------------------------------------
 
-    async def reflexive_generate(self, spec: str, language: str = "python") -> Dict[str, Any]:
+    async def reflexive_generate(self, spec: str, language: str = "python") -> dict[str, Any]:
         """Generate code using Reflexion loop for self-improvement."""
 
         async def actor(task: str) -> str:
@@ -362,7 +362,7 @@ class CoderAgent(BaseAgent):
             "reflexion_history": self._reflexion_memory.feedback_history,
         }
 
-    async def reflexive_review(self, code: str, language: str = "python") -> Dict[str, Any]:
+    async def reflexive_review(self, code: str, language: str = "python") -> dict[str, Any]:
         """Review code with Reflexion - retry review if quality check fails."""
 
         async def actor(task: str) -> str:
@@ -389,7 +389,7 @@ class CoderAgent(BaseAgent):
             "success": result.get("success", False),
         }
 
-    async def _generate_with_reflexion(self, task: Task) -> Dict[str, Any]:
+    async def _generate_with_reflexion(self, task: Task) -> dict[str, Any]:
         """Generate code using Reflexion loop via task payload."""
         language = task.payload.get("language", "python")
         spec = task.payload.get("spec", task.description)

@@ -11,15 +11,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
+import struct
 import time
 import uuid
 from collections import defaultdict
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from src.config.logging_config import get_logger
 from src.core.event_bus import EventBus
 from src.colony_types._pydantic_compat import model_dump
 from src.colony_types.colony_ecosystem import ColonyIdentity, MeshMessage
+
+if TYPE_CHECKING:
+    from src.colony.health_monitor.health_monitor import ColonyHealthMonitor
 
 logger = get_logger(__name__)
 

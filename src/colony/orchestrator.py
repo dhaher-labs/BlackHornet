@@ -22,15 +22,21 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from src.config.logging_config import get_logger
 from src.colony_types._pydantic_compat import model_dump
 from src.colony.graph_sync import GraphifySyncBridge
 from src.colony.session_export import SessionExporter
+from src.colony.mesh_bus import MeshBus
+from src.colony.nest import SelfNest
+from src.colony.radar import ColonyRadar
 from src.bh_types.ecosystem import EcosystemState
 from src.core.evolution_bridge import EvolutionBridge
 from src.swarm.swarm_skills import SwarmSkillsManager
+
+if TYPE_CHECKING:
+    from src.colony.health_monitor.health_monitor import ColonyHealthMonitor
 
 logger = get_logger(__name__)
 
