@@ -23,7 +23,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 try:
-    from agent.memory_provider import MemoryProvider
+    from agent.memory_provider import MemoryProvider  # type: ignore[import-not-found]
 except ImportError:
     from ._stubs import MemoryProvider
 
@@ -107,7 +107,7 @@ class BHMemoryProvider(MemoryProvider):
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from hermes_constants import get_hermes_home
+        from hermes_constants import get_hermes_home  # type: ignore[import-not-found]
         self._bh_home = kwargs.get("hermes_home") or str(get_hermes_home())
         self._session_id = session_id
         self._turn_count = 0

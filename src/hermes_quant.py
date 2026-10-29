@@ -265,7 +265,7 @@ class blackhornet:
         # Initialize Memory Bridge — shared memory to agent swarm
         self.memory_bridge = None
         try:
-            from memory_bridge import MemoryBridge
+            from memory_bridge import MemoryBridge  # type: ignore[import-not-found]
             self.memory_bridge = MemoryBridge()
             logger.info("Memory Bridge connected to agent swarm")
         except Exception as e:

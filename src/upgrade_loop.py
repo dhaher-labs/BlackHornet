@@ -43,7 +43,7 @@ class BHUpgradeLoop:
         colony_state = Path(__file__).parent.parent / "data" / "colony_state.json"
 
         try:
-            from colony_bridge import ColonyBridge
+            from colony_bridge import ColonyBridge  # type: ignore[import-not-found]
             bridge = ColonyBridge()
             prev = json.loads(colony_state.read_text()) if colony_state.exists() else {}
 

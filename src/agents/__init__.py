@@ -32,34 +32,34 @@ from src.agents.state import (
 # These classes live in the flat .py files alongside the package directories.
 # They may or may not be available depending on import order.
 try:
-    from src.agents.executor.executor import SandboxConfig, SandboxHandle  # type: ignore[no-redef]
+    from src.agents.executor.executor import SandboxConfig, SandboxHandle  # type: ignore[no-redef, import-not-found]
 except ImportError:
     SandboxConfig = None  # type: ignore[misc,assignment]
     SandboxHandle = None  # type: ignore[misc,assignment]
 
 try:
-    from src.agents.coder.coder import CodeArtifact  # type: ignore[no-redef]
+    from src.agents.coder.coder import CodeArtifact  # type: ignore[no-redef, import-not-found]
 except ImportError:
     CodeArtifact = None  # type: ignore[misc,assignment]
 
 try:
-    from src.agents.browser.browser import BrowserPage  # type: ignore[no-redef]
+    from src.agents.browser.browser import BrowserPage  # type: ignore[no-redef, import-not-found]
 except ImportError:
     BrowserPage = None  # type: ignore[misc,assignment]
 
 try:
-    from src.agents.voice.voice import VoiceSession  # type: ignore[no-redef]
+    from src.agents.voice.voice import VoiceSession  # type: ignore[no-redef, import-not-found]
 except ImportError:
     VoiceSession = None  # type: ignore[misc,assignment]
 
 try:
-    from src.agents.researcher.researcher import ResearchDocument, ResearchReport  # type: ignore[no-redef]
+    from src.agents.researcher.researcher import ResearchDocument, ResearchReport  # type: ignore[no-redef, import-not-found]
 except ImportError:
     ResearchDocument = None  # type: ignore[misc,assignment]
     ResearchReport = None  # type: ignore[misc,assignment]
 
 try:
-    from src.agents.colony.colony import ColonyMetrics  # type: ignore[no-redef]
+    from src.agents.colony.colony import ColonyMetrics  # type: ignore[no-redef, import-not-found]
 except ImportError:
     ColonyMetrics = None  # type: ignore[misc,assignment]
 

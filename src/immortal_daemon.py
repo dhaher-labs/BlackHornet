@@ -31,7 +31,7 @@ from typing import Dict, List
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from swarm_protocol import SwarmProtocol
+from swarm_protocol import SwarmProtocol  # type: ignore[import-not-found]
 
 logger = logging.getLogger("ImmortalDaemon")
 
@@ -340,7 +340,7 @@ fi
                 # Cluster 3: AMC upgrade loop (every 3 cycles)
                 if self.cycles % 3 == 0:
                     try:
-                        from upgrade_loop import BHUpgradeLoop
+                        from upgrade_loop import BHUpgradeLoop  # type: ignore[import-not-found]
                         ul = BHUpgradeLoop()
                         result = ul.run_cycle()
                         if result.get("upgrade_result", {}).get("pull_from_amc", {}).get("colony_integration"):

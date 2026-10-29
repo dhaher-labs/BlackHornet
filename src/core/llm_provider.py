@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 # ── Emit deprecation warnings for other LLM clients ──────────────────────
 try:
-    from connectors.llm_gateway import LLMGateway as _LegacyLLMGateway  # noqa: F401
+    from connectors.llm_gateway import LLMGateway as _LegacyLLMGateway  # type: ignore[import-not-found]  # noqa: F401
     warnings.warn(
         "connectors.llm_gateway.LLMGateway is deprecated — use "
         "ai_multicolony.core.llm_provider.LLMProvider instead.",
@@ -35,7 +35,7 @@ except ImportError:
     pass
 
 try:
-    from src.core.legacy.llm_client import LLMClient as _LegacyLLMClient  # noqa: F401
+    from src.core.legacy.llm_client import LLMClient as _LegacyLLMClient  # type: ignore[import-not-found]  # noqa: F401
     warnings.warn(
         "ai_multicolony.core.legacy.llm_client.LLMClient is deprecated — use "
         "ai_multicolony.core.llm_provider.LLMProvider instead.",
@@ -46,7 +46,7 @@ except ImportError:
     pass
 
 try:
-    from quant_nanggroe.engine.llm_router import LLMRouter as _LegacyLLMRouter  # noqa: F401
+    from quant_nanggroe.engine.llm_router import LLMRouter as _LegacyLLMRouter  # type: ignore[import-not-found]  # noqa: F401
     warnings.warn(
         "quant_nanggroe.engine.llm_router.LLMRouter is deprecated — use "
         "ai_multicolony.core.llm_provider.LLMProvider instead.",
