@@ -205,7 +205,7 @@ class ToolRegistry:
             tags=tool_tags,
         )
 
-        tool = FunctionTool(func=func, definition=definition)
+        tool: Any = FunctionTool(func=func, definition=definition)
         tool.__name__ = f"{tool_name.title()}Tool"
         self.register_instance(tool, tags=tool_tags)
 
@@ -386,9 +386,10 @@ def tool(
         )
 
         # Attach metadata to the function for discovery
-        func._tool_cls = tool_cls
-        func._tool_name = tool_name
-        func._tool_tags = tool_tags
+        func_meta: Any = func
+        func_meta._tool_cls = tool_cls
+        func_meta._tool_name = tool_name
+        func_meta._tool_tags = tool_tags
 
         return func
 
