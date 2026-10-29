@@ -8,7 +8,7 @@ Indicators: RSI, EMA, ATR, MACD, Volume Profile
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 logger = logging.getLogger("blackhornet.TechnicalAnalysis")
 
@@ -62,7 +62,7 @@ class TechnicalAnalysisTool:
         highs = [d["high"] for d in data]
         lows = [d["low"] for d in data]
 
-        structure = {
+        structure: Dict[str, Any] = {
             "trend": "neutral",
             "swing_highs": [],
             "swing_lows": [],
@@ -193,7 +193,7 @@ class TechnicalAnalysisTool:
         lows = [d["low"] for d in data]
         volumes = [d.get("volume", 0) for d in data]
 
-        indicators = {}
+        indicators: Dict[str, Any] = {}
 
         # RSI (14)
         if len(closes) >= 15:
@@ -286,7 +286,7 @@ class TechnicalAnalysisTool:
         trend = smc.get("trend", "neutral")
 
         # Confluence scoring
-        confluences = 0
+        confluences: float = 0
         total_possible = 5
 
         # 1. Trend alignment
