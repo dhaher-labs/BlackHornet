@@ -125,7 +125,7 @@ class LifecycleRecorder:
             event_type_str = event_type.value
         else:
             event_type_str = event_type
-        event = {
+        event: dict[str, Any] = {
             "id": str(uuid.uuid4()),
             "colony_id": self._colony_id,
             "session_id": self._current_session,
