@@ -198,8 +198,8 @@ class LLMProvider:
         if daily_cost >= self.cost_limit_daily:
             raise LLMTokensExceededError(
                 f"Daily cost limit exceeded: ${daily_cost:.2f} >= ${self.cost_limit_daily:.2f}",
-                tokens_used=int(daily_cost * 1000),
-                token_limit=int(self.cost_limit_daily * 1000),
+                tokens_requested=int(daily_cost * 1000),
+                tokens_limit=int(self.cost_limit_daily * 1000),
             )
 
     def _count_tokens(self, messages: list[dict[str, Any]], model: Optional[str] = None) -> int:

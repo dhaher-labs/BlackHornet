@@ -237,8 +237,6 @@ class BaseAgent(BaseModel):
         if self.state not in (AgentState.IDLE, AgentState.ERROR):
             raise AgentStateError(
                 f"Cannot run agent in state {self.state.value}",
-                agent_id=self.agent_id,
-                current_state=self.state.value,
             )
 
         self.current_task = task

@@ -125,27 +125,44 @@ class ToolPermissionError(ToolError):
 
     def __init__(
         self,
+        message: str = "",
         tool: str = "",
         required_level: int = 0,
         current_level: int = 0,
+        tool_name: str = "",
+        required_permission: str = "",
     ):
-        self.tool = tool
+        self.tool = tool or tool_name
+        self.tool_name = tool_name or tool
+        self.required_permission = required_permission
         self.required_level = required_level
         self.current_level = current_level
-        super().__init__(
-            f"Permission denied: autonomy level {current_level} insufficient "
-            f"for tool {tool} (requires level {required_level})",
-            "TOOL_PERMISSION",
-        )
+        if not message:
+            message = (
+                f"Permission denied: autonomy level {current_level} insufficient "
+                f"for tool {self.tool} (requires level {required_level})"
+            )
+        super().__init__(message, "TOOL_PERMISSION")
 
 
 class ToolTimeoutError(ToolError):
     """Tool execution exceeded its time limit."""
 
-    def __init__(self, tool: str = "", timeout_ms: int = 0):
-        self.tool = tool
+    def __init__(
+        self,
+        message: str = "",
+        tool: str = "",
+        timeout_ms: int = 0,
+        tool_name: str = "",
+        timeout: float = 0.0,
+    ):
+        self.tool = tool or tool_name
+        self.tool_name = tool_name or tool
         self.timeout_ms = timeout_ms
-        super().__init__(f"Tool {tool} timed out after {timeout_ms}ms", "TOOL_TIMEOUT")
+        self.timeout = timeout
+        if not message:
+            message = f"Tool {self.tool} timed out after {timeout_ms}ms"
+        super().__init__(message, "TOOL_TIMEOUT")
 
 
 class ToolRateLimitError(ToolError):
@@ -245,7 +262,13 @@ class EventBusError(MultiColonyError):
 class LLMError(MultiColonyError):
     """LLM provider errors."""
 
-    def __init__(self, message: str = "LLM error", code: str = "LLM_ERROR"):
+    def __init__(
+        self,
+        message: str = "LLM error",
+        code: str = "LLM_ERROR",
+        model: str = "",
+    ):
+        self.model = model
         super().__init__(message, code)
 
 
@@ -282,7 +305,13 @@ class ChannelError(MultiColonyError):
 class SandboxError(MultiColonyError):
     """Sandbox execution errors."""
 
-    def __init__(self, message: str = "Sandbox error", code: str = "SANDBOX_ERROR"):
+    def __init__(
+        self,
+        message: str = "Sandbox error",
+        code: str = "SANDBOX_ERROR",
+        sandbox_type: str = "",
+    ):
+        self.sandbox_type = sandbox_type
         super().__init__(message, code)
 
 
@@ -292,6 +321,12 @@ class SandboxError(MultiColonyError):
 class ToolExecutionError(ToolError):
     """Tool execution failed."""
 
-    def __init__(self, tool: str = "", message: str = "Tool execution failed"):
-        self.tool = tool
+    def __init__(
+        self,
+        message: str = "Tool execution failed",
+        tool: str = "",
+        tool_name: str = "",
+    ):
+        self.tool = tool or tool_name
+        self.tool_name = tool_name or tool
         super().__init__(message, "TOOL_EXECUTION")
