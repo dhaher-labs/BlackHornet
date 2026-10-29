@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from src.config.logging_config import get_logger
 from src.core.event_bus import EventBus
-from src.colony_types._pydantic_compat import model_dump
+from src.colony_types._pydantic_compat import model_dump, model_validate
 from src.colony_types.colony_ecosystem import ColonyIdentity, MeshMessage
 
 if TYPE_CHECKING:
@@ -50,6 +50,7 @@ class MeshBus:  # noqa: D101
 
         self._delivered: set[str] = set()
         self._pending_responses: dict[str, asyncio.Future] = {}
+        self._peer_lock = asyncio.Lock()
 
         self._message_count = 0
         self._relay_count = 0
@@ -68,7 +69,6 @@ class MeshBus:  # noqa: D101
 
     async def start(self) -> None:
         """Start the mesh bus."""
-        await super().start()  # Call parent start
         if self._running:
             return
         self._running = True
@@ -80,7 +80,6 @@ class MeshBus:  # noqa: D101
 
     async def stop(self) -> None:
         """Stop the mesh bus."""
-        await super().stop()  # Call parent stop
         self._running = False
         for task in self._tasks:
             task.cancel()
@@ -149,7 +148,7 @@ class MeshBus:  # noqa: D101
                 async with session.post(
                     url,
                     json=model_dump(message),
-                    timeout=10,
+                    timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
                     if resp.status != 200:
                         logger.debug("mesh_delivery_failed target=%s status=%d", target, resp.status)
@@ -182,6 +181,25 @@ class MeshBus:  # noqa: D101
                 future.set_result(message.payload)
 
         return {"status": "delivered", "message_id": message.message_id}
+
+    async def _dispatch_local(self, message: MeshMessage) -> None:
+        """Deliver a mesh message to local topic subscribers."""
+        handlers = self._subscribers.get(message.topic, [])
+        for handler in handlers:
+            try:
+                result = handler(message.payload)
+                if asyncio.iscoroutine(result):
+                    await result
+            except Exception as e:
+                logger.warning("mesh_local_dispatch_error topic=%s err=%s", message.topic, e)
+
+    async def _dispatch_remote(self, message: MeshMessage) -> None:
+        """Re-broadcast a mesh message to remote colonies (hop + 1)."""
+        forwarded = model_validate(
+            MeshMessage,
+            {**model_dump(message), "hop_count": message.hop_count + 1},
+        )
+        await self.send_signal(forwarded)
 
     async def _http_listener(self) -> None:
         try:
