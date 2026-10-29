@@ -266,7 +266,7 @@ class MemoryManager:
 
         # T5 – Smallville
         if tier in (None, MemoryTier.T5_SMALLVILLE):
-            results = self._smallville.retrieve(query=key, limit=1)
+            results = await self._smallville.retrieve(query=key, limit=1)
             if results:
                 return {
                     "id": results[0].memory.id,
@@ -338,7 +338,7 @@ class MemoryManager:
         # T5 – Smallville (3-factor retrieval)
         if tier in (None, MemoryTier.T5_SMALLVILLE):
             try:
-                sm_results = self._smallville.retrieve(query=query, limit=limit)
+                sm_results = await self._smallville.retrieve(query=query, limit=limit)
                 for rm in sm_results:
                     results.append({
                         "tier": "smallville",
@@ -506,7 +506,7 @@ class MemoryManager:
 
         Returns list of dicts with memory content and scores.
         """
-        results = self._smallville.retrieve(
+        results = await self._smallville.retrieve(
             query=query, limit=limit, agent_id=agent_id,
         )
         return [
