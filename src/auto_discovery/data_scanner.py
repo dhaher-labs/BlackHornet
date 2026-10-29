@@ -135,12 +135,12 @@ class DataScanner:
         Returns:
             List of :class:`DataSource` results, one per source.
         """
-        logger.info("data_scan_started", source_count=len(_DATA_SOURCES))
+        logger.info("data_scan_started source_count=%s", len(_DATA_SOURCES))
         results = await asyncio.to_thread(self._discover_all_sync)
         logger.info(
-            "data_scan_completed",
-            total=len(results),
-            available=sum(1 for r in results if r.is_available),
+            "data_scan_completed total=%s available=%s",
+            len(results),
+            sum(1 for r in results if r.is_available),
         )
         return results
 
@@ -173,9 +173,9 @@ class DataScanner:
         try:
             with open(filepath, "w") as f:
                 json.dump({"sources": data}, f, indent=2)
-            logger.debug("data_scan_saved", path=filepath, count=len(data))
+            logger.debug("data_scan_saved path=%s count=%s", filepath, len(data))
         except OSError as exc:
-            logger.error("data_scan_save_failed", path=filepath, error=str(exc))
+            logger.error("data_scan_save_failed path=%s error=%s", filepath, exc)
 
     def load(self, path: str = "providers_data.json") -> list[DataSource]:
         """Load previously persisted scan results.
@@ -189,7 +189,7 @@ class DataScanner:
         """
         filepath = os.path.join(self._data_dir, path)
         if not os.path.isfile(filepath):
-            logger.debug("data_scan_file_not_found", path=filepath)
+            logger.debug("data_scan_file_not_found path=%s", filepath)
             return []
 
         try:
@@ -201,16 +201,16 @@ class DataScanner:
                 if isinstance(entry, dict):
                     results.append(DataSource(**entry))
             logger.debug(
-                "data_scan_loaded",
-                path=filepath,
-                count=len(results),
+                "data_scan_loaded path=%s count=%s",
+                filepath,
+                len(results),
             )
             return results
         except (json.JSONDecodeError, OSError, TypeError) as exc:
             logger.warning(
-                "data_scan_load_failed",
-                path=filepath,
-                error=str(exc),
+                "data_scan_load_failed path=%s error=%s",
+                filepath,
+                exc,
             )
             return []
 
@@ -277,7 +277,7 @@ class DataScanner:
 
         if requires_key and not api_key:
             info.error = f"Missing env var: {api_key_env}"
-            logger.debug("data_skip_no_key", source=name, env_var=api_key_env)
+            logger.debug("data_skip_no_key source=%s env_var=%s", name, api_key_env)
             return info
 
         url = f"{base_url.rstrip('/')}/{test_path.lstrip('/')}"
@@ -289,19 +289,19 @@ class DataScanner:
             info.is_available = True
             info.latency_ms = round(elapsed_ms, 1)
             logger.debug(
-                "data_source_ok",
-                source=name,
-                latency_ms=info.latency_ms,
+                "data_source_ok source=%s latency_ms=%s",
+                name,
+                info.latency_ms,
             )
         except Exception as exc:
             elapsed_ms = (time.time() - start) * 1000.0
             info.latency_ms = round(elapsed_ms, 1)
             info.error = str(exc)
             logger.warning(
-                "data_source_failed",
-                source=name,
-                error=info.error,
-                latency_ms=info.latency_ms,
+                "data_source_failed source=%s error=%s latency_ms=%s",
+                name,
+                info.error,
+                info.latency_ms,
             )
 
         return info

@@ -220,22 +220,22 @@ class LLMRouter:
         for provider_name in fallback_chain:
             provider_cfg = self._providers.get(provider_name)
             if provider_cfg is None:
-                logger.warning("provider_not_found", provider=provider_name)
+                logger.warning("provider_not_found provider=%s", provider_name)
                 continue
 
             model = self._first_model(provider_cfg)
             if model is None:
-                logger.warning("provider_no_models", provider=provider_name)
+                logger.warning("provider_no_models provider=%s", provider_name)
                 continue
 
             api_key = os.environ.get(provider_cfg.get("api_key_env", ""), "")
             endpoint = provider_cfg.get("base_url", "")
 
             logger.debug(
-                "routing_with_fallback",
-                provider=provider_name,
-                model=model,
-                complexity=complexity.value,
+                "routing_with_fallback provider=%s model=%s complexity=%s",
+                provider_name,
+                model,
+                complexity.value,
             )
 
             return RouteResult(
@@ -276,21 +276,21 @@ class LLMRouter:
             provider_cfg = self._providers.get(provider_name)
 
             if provider_cfg is None:
-                logger.debug("provider_unknown", provider=provider_name)
+                logger.debug("provider_unknown provider=%s", provider_name)
                 continue
 
             api_key = os.environ.get(provider_cfg.get("api_key_env", ""), "")
             if not api_key:
-                logger.debug("provider_no_api_key", provider=provider_name)
+                logger.debug("provider_no_api_key provider=%s", provider_name)
                 continue
 
             endpoint = provider_cfg.get("base_url", "")
 
             logger.debug(
-                "routing_decision",
-                provider=provider_name,
-                model=model,
-                complexity=complexity.value,
+                "routing_decision provider=%s model=%s complexity=%s",
+                provider_name,
+                model,
+                complexity.value,
             )
 
             return RouteResult(
@@ -314,9 +314,9 @@ class LLMRouter:
         endpoint = provider_cfg.get("base_url", "")
 
         logger.info(
-            "routing_fallback_to_default",
-            provider=default,
-            model=model,
+            "routing_fallback_to_default provider=%s model=%s",
+            default,
+            model,
         )
 
         return RouteResult(
@@ -357,16 +357,16 @@ class LLMRouter:
                 else:
                     self._providers = data.get("providers", data)
                 logger.info(
-                    "providers_loaded",
-                    path=self.providers_file,
-                    count=len(self._providers),
+                    "providers_loaded path=%s count=%s",
+                    self.providers_file,
+                    len(self._providers),
                 )
                 return
             except (json.JSONDecodeError, OSError) as exc:
                 logger.warning(
-                    "providers_load_failed",
-                    path=self.providers_file,
-                    error=str(exc),
+                    "providers_load_failed path=%s error=%s",
+                    self.providers_file,
+                    exc,
                 )
 
         self._providers = {
@@ -402,6 +402,6 @@ class LLMRouter:
             },
         }
         logger.info(
-            "providers_loaded_defaults",
-            count=len(self._providers),
+            "providers_loaded_defaults count=%s",
+            len(self._providers),
         )
