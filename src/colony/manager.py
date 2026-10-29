@@ -265,7 +265,7 @@ class Colony:
 
         # Hand coverage: ratio of hands that have ≥1 agent
         covered = sum(1 for agents in self._hand_assignments.values() if agents)
-        hand_cov = covered / len(HandType) if HandType else 1.0
+        hand_cov = covered / len(HandType) if len(HandType) > 0 else 1.0
 
         # Resource utilization (heuristic: agent count / max agents)
         res_util = len(self._agents) / self.config.max_agents if self.config.max_agents > 0 else 0.0
