@@ -137,11 +137,11 @@ class CostTracker:
         self._save()
 
         logger.debug(
-            "usage_recorded",
-            provider=provider,
-            model=model,
-            total_tokens=total,
-            latency_ms=round(latency_ms, 1),
+            "usage_recorded provider=%s model=%s total_tokens=%s latency_ms=%s",
+            provider,
+            model,
+            total,
+            round(latency_ms, 1),
         )
 
         return record
@@ -196,7 +196,7 @@ class CostTracker:
         self._stats.clear()
         self._last_reset = datetime.now(timezone.utc).isoformat()
         self._save()
-        logger.info("cost_tracker_reset", timestamp=self._last_reset)
+        logger.info("cost_tracker_reset timestamp=%s", self._last_reset)
 
     @staticmethod
     def estimate_tokens(text: str) -> int:
@@ -269,7 +269,7 @@ class CostTracker:
         empty state.
         """
         if not os.path.isfile(self._state_file):
-            logger.debug("cost_tracker_no_state_file", path=self._state_file)
+            logger.debug("cost_tracker_no_state_file path=%s", self._state_file)
             return
 
         try:
@@ -287,17 +287,17 @@ class CostTracker:
             self._last_reset = data.get("last_reset", "")
 
             logger.info(
-                "cost_tracker_state_loaded",
-                path=self._state_file,
-                records=len(self._history),
-                providers=len(self._stats),
+                "cost_tracker_state_loaded path=%s records=%s providers=%s",
+                self._state_file,
+                len(self._history),
+                len(self._stats),
             )
 
         except (json.JSONDecodeError, OSError, TypeError, ValueError) as exc:
             logger.warning(
-                "cost_tracker_state_load_failed",
-                path=self._state_file,
-                error=str(exc),
+                "cost_tracker_state_load_failed path=%s error=%s",
+                self._state_file,
+                exc,
             )
 
     def _save(self) -> None:
@@ -320,10 +320,10 @@ class CostTracker:
         try:
             with open(self._state_file, "w") as f:
                 json.dump(data, f, indent=2)
-            logger.debug("cost_tracker_state_saved", path=self._state_file)
+            logger.debug("cost_tracker_state_saved path=%s", self._state_file)
         except OSError as exc:
             logger.error(
-                "cost_tracker_state_save_failed",
-                path=self._state_file,
-                error=str(exc),
+                "cost_tracker_state_save_failed path=%s error=%s",
+                self._state_file,
+                exc,
             )

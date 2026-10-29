@@ -191,7 +191,7 @@ class ConfigManager:
             The loaded or default configuration.
         """
         if not os.path.isfile(self._config_path):
-            logger.info("config_file_not_found", path=self._config_path, using="defaults")
+            logger.info("config_file_not_found path=%s using=%s", self._config_path, "defaults")
             self._config = self.get_default()
             return self._config
 
@@ -209,11 +209,11 @@ class ConfigManager:
                 data_dir=raw.get("data_dir", "~/.bh/data"),
             )
 
-            logger.info("config_loaded", path=self._config_path, providers=len(self._config.llm_providers))
+            logger.info("config_loaded path=%s providers=%s", self._config_path, len(self._config.llm_providers))
             return self._config
 
         except (yaml.YAMLError, OSError, TypeError, ValueError) as exc:
-            logger.warning("config_load_failed", path=self._config_path, error=str(exc), using="defaults")
+            logger.warning("config_load_failed path=%s error=%s using=%s", self._config_path, exc, "defaults")
             self._config = self.get_default()
             return self._config
 
@@ -238,9 +238,9 @@ class ConfigManager:
         try:
             with open(self._config_path, "w") as f:
                 yaml.safe_dump(raw, f, default_flow_style=False, sort_keys=False)
-            logger.info("config_saved", path=self._config_path)
+            logger.info("config_saved path=%s", self._config_path)
         except OSError as exc:
-            logger.error("config_save_failed", path=self._config_path, error=str(exc))
+            logger.error("config_save_failed path=%s error=%s", self._config_path, exc)
             raise
 
     @staticmethod
@@ -294,9 +294,9 @@ class ConfigManager:
             if hasattr(provider, key):
                 setattr(provider, key, value)
             else:
-                logger.warning("update_provider_unknown_field", provider=name, field=key)
+                logger.warning("update_provider_unknown_field provider=%s field=%s", name, key)
         self.save(self._config)
-        logger.info("provider_updated", provider=name, changes=set(kwargs.keys()))
+        logger.info("provider_updated provider=%s changes=%s", name, set(kwargs.keys()))
 
     def get_routing(self, complexity: str) -> RoutingConfig:
         """Get routing configuration for a specific complexity tier.
