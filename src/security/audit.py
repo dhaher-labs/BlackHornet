@@ -19,7 +19,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol
 
-from src.colony_types import AuditEntry, AuditEvent, AuditEventType, AuditLevel, AuditQuery
+from src.colony_types import AuditEntry, AuditEvent, AuditEventType, AuditLevel, AuditQuery, AutonomyLevel
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +241,7 @@ class AuditTrail:
             colony_id=colony_id,
             tool_name=tool_name,
             action=action,
-            autonomy_level=autonomy_level,
+            autonomy_level=AutonomyLevel(autonomy_level),
             approved=approved,
             details=details or {},
         )
