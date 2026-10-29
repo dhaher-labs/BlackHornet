@@ -132,13 +132,32 @@ class WebSocketHandler:
             return client.send({"type": event_type, "data": data, "timestamp": time.time()})
         return False
 
+    @staticmethod
+    def _resolve_event_type(event: Any) -> str:
+        """Resolve a readable event type from any supported Event shape.
+
+        UI-bus events (src/ui/event_bus.Event) carry ``type`` as a plain str;
+        core-bus events (src/colony_types.events.Event) carry ``event_type``
+        as an EventType enum whose ``.value`` is the canonical key. Preferring
+        ``type`` keeps current UI-bus behavior identical; the ``event_type``
+        fallback prevents every bridged core event from surfacing as
+        "unknown" (see docs/02-arch/EVENT_UI_MAPPING.md).
+        """
+        raw = getattr(event, "type", None)
+        if raw is None:
+            raw = getattr(event, "event_type", None)
+        if raw is None:
+            return "unknown"
+        value = getattr(raw, "value", None)
+        return value if isinstance(value, str) else str(raw)
+
     def _on_event(self, event: Any) -> None:
         """Handle events from EventBus and broadcast to WebSocket clients."""
         if not self._running:
             return
 
         data = {
-            "event_type": getattr(event, "type", "unknown"),
+            "event_type": self._resolve_event_type(event),
             "event_data": getattr(event, "data", {}),
             "source": getattr(event, "source", ""),
             "timestamp": getattr(event, "timestamp", time.time()),
