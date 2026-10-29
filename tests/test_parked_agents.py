@@ -212,5 +212,128 @@ class TestParkedAgentsContracts(unittest.TestCase):
         self.assertFalse(reg.is_parked("a1"))
 
 
+class TestParkedAgentsEmissions(unittest.TestCase):
+    """Mutators emit agent_state_changed bus events (EVENT_UI_MAPPING.md §5)."""
+
+    def setUp(self):
+        self.bus = EventBus()
+        _run(self.bus.start())
+
+    def tearDown(self):
+        _run(self.bus.stop())
+
+    def test_park_emits_parked_event(self):
+        async def scenario():
+            seen = []
+
+            async def rec(event):
+                seen.append(event)
+
+            self.bus.subscribe("agent_state_changed", rec)
+            reg = ParkedAgentRegistry(bus=self.bus)
+            reg.park("a1", ["task_submitted"], _Recorder())
+            await asyncio.gather(*list(reg._pending))
+            return seen
+
+        seen = _run(scenario())
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(seen[0].event_type, EventType.AGENT_STATE_CHANGED)
+        self.assertEqual(seen[0].source, "parked_agents")
+        self.assertEqual(
+            seen[0].data,
+            {"agent_id": "a1", "from": "active", "to": "parked"},
+        )
+
+    def test_wake_emits_active_event(self):
+        async def scenario():
+            seen = []
+
+            async def rec(event):
+                seen.append(event)
+
+            self.bus.subscribe("agent_state_changed", rec)
+            reg = ParkedAgentRegistry(bus=self.bus)
+            reg.park("a1", ["task_submitted"], _Recorder())
+            await asyncio.gather(*list(reg._pending))
+            self.assertTrue(reg.wake("a1"))
+            await asyncio.gather(*list(reg._pending))
+            return seen
+
+        seen = _run(scenario())
+        self.assertEqual(len(seen), 2)
+        self.assertEqual(seen[0].data["to"], "parked")
+        self.assertEqual(seen[1].data["to"], "active")
+        self.assertEqual(seen[1].data["from"], "parked")
+
+    def test_unpark_emits_active_event(self):
+        async def scenario():
+            seen = []
+
+            async def rec(event):
+                seen.append(event)
+
+            self.bus.subscribe("agent_state_changed", rec)
+            reg = ParkedAgentRegistry(bus=self.bus)
+            reg.park("a1", ["task_submitted"], _Recorder())
+            await asyncio.gather(*list(reg._pending))
+            self.assertTrue(reg.unpark("a1"))
+            await asyncio.gather(*list(reg._pending))
+            return seen
+
+        seen = _run(scenario())
+        self.assertEqual(len(seen), 2)
+        self.assertEqual(seen[1].data["to"], "active")
+
+    def test_wake_missing_agent_emits_nothing(self):
+        async def scenario():
+            seen = []
+
+            async def rec(event):
+                seen.append(event)
+
+            self.bus.subscribe("agent_state_changed", rec)
+            reg = ParkedAgentRegistry(bus=self.bus)
+            self.assertFalse(reg.wake("ghost"))
+            await asyncio.gather(*list(reg._pending))
+            return seen
+
+        self.assertEqual(_run(scenario()), [])
+
+    def test_no_bus_skips_emission_silently(self):
+        async def scenario():
+            reg = ParkedAgentRegistry()
+            rec = _Recorder()
+            reg.park("a1", ["task_submitted"], rec)
+            self.assertTrue(reg.wake("a1"))
+            return reg
+
+        reg = _run(scenario())
+        self.assertEqual(reg._pending, set())
+        self.assertFalse(reg.is_parked("a1"))
+
+    def test_emission_failure_contained(self):
+        class _BoomBus:
+            def subscribe(self, event_type, handler):
+                pass
+
+            def unsubscribe(self, event_type, handler):
+                pass
+
+            async def publish_typed(self, *args, **kwargs):
+                raise RuntimeError("boom")
+
+        async def scenario():
+            reg = ParkedAgentRegistry(bus=_BoomBus())  # type: ignore[arg-type]
+            rec = _Recorder()
+            reg.park("a1", ["task_submitted"], rec)
+            await asyncio.gather(*list(reg._pending))  # must not raise
+            self.assertTrue(reg.wake("a1"))  # registry still functional
+            await asyncio.gather(*list(reg._pending))
+            return rec
+
+        rec = _run(scenario())
+        self.assertEqual(len(rec.events), 1)  # wake handler ran
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -17,16 +17,22 @@ Design notes:
 - Wildcard subscriptions: an agent parked with ``"*"`` wakes on every event.
 - Re-parking an agent replaces its previous subscription set and detaches the
   old bus handlers, so stale subscriptions can never wake a replaced entry.
+- Mutators emit ordinary ``agent_state_changed`` bus events (``to`` =
+  ``"parked" | "active"``) so the UI can surface dormancy without a new
+  transport (docs/02-arch/EVENT_UI_MAPPING.md §5). Emissions are best-effort
+  telemetry scheduled only when a running loop exists; they never break
+  parking/waking and are skipped silently in sync contexts.
 """
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Optional
 
-from src.colony_types.events import Event
+from src.colony_types.events import Event, EventType
 from src.config.logging_config import get_logger
 from src.core.event_bus import EventBus
 
@@ -65,6 +71,9 @@ class ParkedAgentRegistry:
     def __init__(self, bus: Optional[EventBus] = None) -> None:
         self._bus = bus
         self._parked: dict[str, ParkedAgent] = {}
+        # In-flight state-change emission tasks (kept alive until done so the
+        # loop cannot garbage-collect them mid-flight).
+        self._pending: set[asyncio.Task[Any]] = set()
 
     # ── parking / waking ───────────────────────────────────────────────
 
@@ -115,6 +124,7 @@ class ParkedAgentRegistry:
 
         self._parked[agent_id] = entry
         logger.info("agent_parked", agent_id=agent_id, event_types=sorted(types))
+        self._schedule_state_change(agent_id, "parked")
 
     def wake(self, agent_id: str, event: Optional[Event] = None) -> bool:
         """Wake a parked agent and remove it from the registry.
@@ -136,6 +146,7 @@ class ParkedAgentRegistry:
             entry.wake(event)
         except Exception as e:
             logger.error("parked_agent_wake_error", agent_id=agent_id, error=str(e))
+        self._schedule_state_change(agent_id, "active")
         return True
 
     def unpark(self, agent_id: str) -> bool:
@@ -154,6 +165,7 @@ class ParkedAgentRegistry:
         if entry is None:
             return False
         self._detach(entry)
+        self._schedule_state_change(agent_id, "active")
         return True
 
     async def on_event(self, event: Event) -> list[str]:
@@ -205,6 +217,46 @@ class ParkedAgentRegistry:
             self.wake(agent_id, event)
 
         return _on_event
+
+    def _schedule_state_change(self, agent_id: str, to_state: str) -> None:
+        """Schedule a best-effort ``agent_state_changed`` emission.
+
+        Mutators are sync; emissions only happen when called from inside a
+        running loop (the orchestrator's async lifecycle). The emission runs
+        as a detached task — this is telemetry, deliberately distinct from
+        the no-fire-and-forget rule that applies to *wake handlers* (user
+        code). Without a running loop the emission is skipped silently, so
+        sync-context callers (and the existing test suite) are unaffected.
+        """
+        if self._bus is None:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        task = loop.create_task(self._emit_state_change(agent_id, to_state))
+        self._pending.add(task)
+        task.add_done_callback(self._pending.discard)
+
+    async def _emit_state_change(self, agent_id: str, to_state: str) -> None:
+        """Publish agent_state_changed (from parked-state model) on the bus.
+
+        Payload follows the canonical mapping (EVENT_UI_MAPPING.md §3/§5):
+        ``data = {"agent_id", "from", "to"}``. Failures are logged and
+        swallowed — emission must never break parking/waking.
+        """
+        if self._bus is None:
+            return
+        try:
+            await self._bus.publish_typed(
+                EventType.AGENT_STATE_CHANGED,
+                source="parked_agents",
+                data={"agent_id": agent_id, "from": "active" if to_state == "parked" else "parked", "to": to_state},
+            )
+        except Exception as e:
+            logger.warning(
+                "parked_agents_emit_error", agent_id=agent_id, error=str(e)
+            )
 
     def _detach(self, entry: ParkedAgent) -> None:
         """Remove an entry's bus subscriptions (safe without a bus)."""
