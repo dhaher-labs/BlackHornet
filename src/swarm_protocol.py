@@ -93,12 +93,12 @@ class SwarmProtocol:
     """
 
     def __init__(self,
-                 agent_id: str = None,
+                 agent_id: Optional[str] = None,
                  agent_type: str = "trading",
                  repo: str = "blackhornet",
                  repo_url: str = "https://github.com/dhaher-labs/blackhornet",
                  version: str = "4.0.0",
-                 swarm_repo_path: str = None):
+                 swarm_repo_path: Optional[str] = None):
 
         self.swarm_repo = Path(swarm_repo_path or DEFAULT_SWARM_REPO)
         self.swarm_dir = self.swarm_repo / SWARM_DIR
@@ -177,7 +177,7 @@ class SwarmProtocol:
         except Exception:
             return False
 
-    def _git_push(self, msg: str = None) -> bool:
+    def _git_push(self, msg: Optional[str] = None) -> bool:
         try:
             subprocess.run(
                 ["git", "-C", str(self.swarm_repo), "add", "sync/swarm/", "sync/messages/"],
@@ -295,7 +295,7 @@ class SwarmProtocol:
         msg_file.write_text(json.dumps(asdict(msg), indent=2))
         return msg_id
 
-    def get_messages(self, for_agent: str = None) -> List[Dict]:
+    def get_messages(self, for_agent: Optional[str] = None) -> List[Dict]:
         """Get messages addressed to this agent (or all)."""
         for_agent = for_agent or self.identity.agent_id
         messages: List[Dict] = []
@@ -481,7 +481,7 @@ class SwarmProtocol:
     # ── Main Loop (Immortal) ──────────────────────────────────────────
 
     def run(self,
-            on_upgrade: Callable = None,
+            on_upgrade: Optional[Callable] = None,
             auto_expand: bool = False,
             auto_heal: bool = True):
         """
