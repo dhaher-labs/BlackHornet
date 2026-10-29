@@ -486,8 +486,8 @@ EventMaskCondenser = type(
     "EventMaskCondenser",
     (BaseCondenser,),
     {
-        "__init__": lambda self, mask_types=None: (
-            setattr(self, '_mask_types', mask_types or ["agent_state_changed"]) or None
+        "__init__": lambda self, mask_types=None: setattr(
+            self, '_mask_types', mask_types or ["agent_state_changed"]
         ),
         "condense": lambda self, events, max_tokens=4000: [
             e for e in events
@@ -502,8 +502,8 @@ LLMLinguaCondenser = type(
     "LLMLinguaCondenser",
     (BaseCondenser,),
     {
-        "__init__": lambda self, compression_rate=0.5: (
-            setattr(self, 'compression_rate', compression_rate) or None
+        "__init__": lambda self, compression_rate=0.5: setattr(
+            self, 'compression_rate', compression_rate
         ),
         "condense": lambda self, events, max_tokens=4000: (
             events if len(events) <= int(len(events) * self.compression_rate)
