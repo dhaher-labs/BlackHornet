@@ -88,7 +88,10 @@ class FeedbackCollector:
             (source, category, rating, comment, json.dumps(ctx), agent_id, session_id, json.dumps(tags or []), time.time()),
         )
         conn.commit()
-        return cursor.lastrowid
+        fb_id_new = cursor.lastrowid
+        if fb_id_new is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return fb_id_new
 
     def get(self, fb_id: int) -> Optional[Feedback]:
         row = self._get_conn().execute("SELECT * FROM feedback WHERE id = ?", (fb_id,)).fetchone()

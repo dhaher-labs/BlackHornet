@@ -98,7 +98,10 @@ class SkillExtractor:
                  confidence, now, now),
             )
             conn.commit()
-            return cursor.lastrowid
+            skill_id = cursor.lastrowid
+            if skill_id is None:
+                raise RuntimeError("INSERT did not return a rowid")
+            return skill_id
         except sqlite3.IntegrityError:
             existing = self.get_by_name(name)
             if existing:

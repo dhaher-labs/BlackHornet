@@ -95,7 +95,10 @@ class GoalManager:
              json.dumps(dependencies or []), json.dumps(tags or []), now, now),
         )
         conn.commit()
-        return cursor.lastrowid
+        goal_id_new = cursor.lastrowid
+        if goal_id_new is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return goal_id_new
 
     def get(self, goal_id: int) -> Optional[Goal]:
         row = self._get_conn().execute("SELECT * FROM goals WHERE id = ?", (goal_id,)).fetchone()

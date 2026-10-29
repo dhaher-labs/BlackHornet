@@ -101,7 +101,10 @@ class CoTRetrieval:
              json.dumps(tags or []), quality_score, now, now),
         )
         conn.commit()
-        return cursor.lastrowid
+        path_id_new = cursor.lastrowid
+        if path_id_new is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return path_id_new
 
     def get(self, path_id: int) -> Optional[CoTPath]:
         row = self._get_conn().execute("SELECT * FROM cot_paths WHERE id = ?", (path_id,)).fetchone()

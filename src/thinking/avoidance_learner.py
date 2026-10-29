@@ -113,6 +113,8 @@ class AvoidanceLearner:
         )
         conn.commit()
         eid = cursor.lastrowid
+        if eid is None:
+            raise RuntimeError("INSERT did not return a rowid")
         logger.debug("Added avoidance rule %d: %s", eid, pattern)
         return eid
 

@@ -98,7 +98,10 @@ class TaskScheduler:
              scheduled_at, json.dumps(dependencies or []), json.dumps(tags or []), now),
         )
         conn.commit()
-        return cursor.lastrowid
+        task_id_new = cursor.lastrowid
+        if task_id_new is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return task_id_new
 
     def get(self, task_id: int) -> Optional[Task]:
         row = self._get_conn().execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
