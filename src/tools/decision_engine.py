@@ -10,7 +10,7 @@ Risk Clearance: CLEAR / BLOCKED / PAUSE
 import json
 import logging
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict, List
 
 logger = logging.getLogger("blackhornet.DecisionSynthesis")
 
@@ -24,7 +24,7 @@ class DecisionSynthesisEngine:
     """
 
     # Machine-readable decision rules
-    DECISION_TABLE = [
+    DECISION_TABLE: List[Dict[str, Any]] = [
         {
             "id": "DT001",
             "regime_allowed": ["TRENDING", "RANGE", "MEAN_REVERT"],
