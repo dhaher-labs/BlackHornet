@@ -139,6 +139,8 @@ class LongTermMemory:
                  now, now, importance),
             )
             entry_id = cursor.lastrowid
+            if entry_id is None:
+                raise RuntimeError("INSERT did not return a rowid")
             conn.execute(
                 "INSERT INTO entries_fts (rowid, content, tags) VALUES (?, ?, ?)",
                 (entry_id, content, tags_json),

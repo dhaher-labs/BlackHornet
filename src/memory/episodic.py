@@ -210,6 +210,8 @@ class EpisodicMemory:
         )
         conn.commit()
         ep_id = cursor.lastrowid
+        if ep_id is None:
+            raise RuntimeError("INSERT did not return a rowid")
         logger.debug("Added episode %d: agent=%s type=%s", ep_id, agent_id, event_type)
         return ep_id
 

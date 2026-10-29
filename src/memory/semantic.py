@@ -286,6 +286,8 @@ class SemanticMemory:
         )
         conn.commit()
         entry_id = cursor.lastrowid
+        if entry_id is None:
+            raise RuntimeError("INSERT did not return a rowid")
         logger.debug("Added semantic entry %d: source=%s", entry_id, source)
         return entry_id
 

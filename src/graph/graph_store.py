@@ -97,7 +97,10 @@ class GraphStore:
             (label, node_type, json.dumps(properties or {}), now, now),
         )
         conn.commit()
-        return cursor.lastrowid
+        node_id = cursor.lastrowid
+        if node_id is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return node_id
 
     def get_node(self, node_id: int) -> Optional[GraphNode]:
         row = self._get_conn().execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
@@ -168,7 +171,10 @@ class GraphStore:
             (source_id, target_id, relation, weight, json.dumps(properties or {}), now),
         )
         conn.commit()
-        return cursor.lastrowid
+        edge_id = cursor.lastrowid
+        if edge_id is None:
+            raise RuntimeError("INSERT did not return a rowid")
+        return edge_id
 
     def add_edge_by_label(self, source_label: str, target_label: str, relation: str = "",
                           weight: float = 1.0) -> int:
