@@ -10,7 +10,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 logger = logging.getLogger("blackhornet.AuditLogger")
 
@@ -26,13 +26,13 @@ class AuditLogger:
     LAYERS = ["MARKET", "SENSOR", "PRESSURE", "DECISION", "RISK", "EXECUTION", "SYSTEM"]
     SEVERITIES = ["INFO", "WARNING", "ERROR", "CRITICAL"]
 
-    def __init__(self, max_entries: int = 1000, log_dir: str = None):
+    def __init__(self, max_entries: int = 1000, log_dir: Optional[str] = None):
         self.entries: List[Dict] = []
         self.max_entries = max_entries
         self.log_dir = Path(log_dir) if log_dir else None
         self.counts = {layer: 0 for layer in self.LAYERS}
 
-    def log(self, layer: str, severity: str, message: str, details: Dict = None):
+    def log(self, layer: str, severity: str, message: str, details: Optional[Dict] = None):
         """Log an audit entry"""
         if layer not in self.LAYERS:
             layer = "SYSTEM"
@@ -61,7 +61,7 @@ class AuditLogger:
 
         return entry
 
-    def get_entries(self, layer: str = None, severity: str = None,
+    def get_entries(self, layer: Optional[str] = None, severity: Optional[str] = None,
                      limit: int = 50) -> List[Dict]:
         """Get filtered audit entries"""
         filtered = self.entries
