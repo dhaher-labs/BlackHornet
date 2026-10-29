@@ -126,9 +126,9 @@ class AutoDiscoveryEngine:
         self._save_state()
 
         logger.info(
-            "engine_initialised",
-            llm_providers=self._state.llm_providers_found,
-            data_sources=self._state.data_sources_found,
+            "engine_initialised llm_providers=%s data_sources=%s",
+            self._state.llm_providers_found,
+            self._state.data_sources_found,
         )
 
     async def shutdown(self) -> None:
@@ -143,7 +143,7 @@ class AutoDiscoveryEngine:
         try:
             await self.health.stop()
         except Exception as exc:
-            logger.warning("health_stop_failed_during_shutdown", error=str(exc))
+            logger.warning("health_stop_failed_during_shutdown error=%s", exc)
         self._state.health_check_running = False
         self._save_state()
         logger.info("engine_shutdown_complete")
@@ -175,9 +175,9 @@ class AutoDiscoveryEngine:
                 1 for r in llm_results if r.is_available
             )
             logger.info(
-                "llm_scan_integrated",
-                found=len(llm_results),
-                healthy=self._state.healthy_providers,
+                "llm_scan_integrated found=%s healthy=%s",
+                len(llm_results),
+                self._state.healthy_providers,
             )
         except Exception as exc:
             msg = f"LLM scan failed: {exc}"
@@ -189,7 +189,7 @@ class AutoDiscoveryEngine:
             data_results = await self.scanner_data.discover_all()
             self.scanner_data.save(data_results)
             self._state.data_sources_found = len(data_results)
-            logger.info("data_scan_integrated", found=len(data_results))
+            logger.info("data_scan_integrated found=%s", len(data_results))
         except Exception as exc:
             msg = f"Data source scan failed: {exc}"
             logger.error(msg)
@@ -211,11 +211,11 @@ class AutoDiscoveryEngine:
         self._save_state()
 
         logger.info(
-            "full_scan_complete",
-            llm_providers=self._state.llm_providers_found,
-            data_sources=self._state.data_sources_found,
-            healthy=self._state.healthy_providers,
-            errors=len(errors),
+            "full_scan_complete llm_providers=%s data_sources=%s healthy=%s errors=%s",
+            self._state.llm_providers_found,
+            self._state.data_sources_found,
+            self._state.healthy_providers,
+            len(errors),
         )
 
     # ------------------------------------------------------------------
@@ -319,7 +319,7 @@ class AutoDiscoveryEngine:
             None,
         )
         if entry is None:
-            logger.warning("test_provider_unknown", provider=name)
+            logger.warning("test_provider_unknown provider=%s", name)
             return ProviderInfo(
                 name=name,
                 display_name=name,
@@ -339,7 +339,7 @@ class AutoDiscoveryEngine:
             models=entry["models"],
         )
         info.display_name = entry.get("display", name)
-        logger.info("test_provider_complete", provider=name, available=info.is_available)
+        logger.info("test_provider_complete provider=%s available=%s", name, info.is_available)
         return info
 
     # ------------------------------------------------------------------
@@ -357,8 +357,8 @@ class AutoDiscoveryEngine:
         self._state.healthy_providers = len(self.health.get_all_healthy())
         self._save_state()
         logger.info(
-            "manual_health_check_complete",
-            healthy=self._state.healthy_providers,
+            "manual_health_check_complete healthy=%s",
+            self._state.healthy_providers,
         )
         return results
 
@@ -400,7 +400,7 @@ class AutoDiscoveryEngine:
         """
         providers_file = os.path.join(self._data_dir, "providers_llm.json")
         if not os.path.isfile(providers_file):
-            logger.warning("router_sync_no_file", path=providers_file)
+            logger.warning("router_sync_no_file path=%s", providers_file)
             return
         try:
             with open(providers_file) as f:
@@ -418,11 +418,11 @@ class AutoDiscoveryEngine:
             else:
                 self.router._providers = data
             self._state.router_ready = True
-            logger.info("router_synced_from_file", path=providers_file)
+            logger.info("router_synced_from_file path=%s", providers_file)
         except (json.JSONDecodeError, OSError) as exc:
-            logger.error("router_sync_failed", path=providers_file, error=str(exc))
+            logger.error("router_sync_failed path=%s error=%s", providers_file, exc)
         except Exception as exc:
-            logger.error("router_sync_unexpected", error=str(exc))
+            logger.error("router_sync_unexpected error=%s", exc)
 
     def _load_state(self) -> DiscoveryState:
         """Load engine state from the discovery state JSON file.
@@ -441,7 +441,7 @@ class AutoDiscoveryEngine:
         try:
             with open(state_file) as f:
                 raw: dict[str, Any] = json.load(f)
-            logger.info("state_loaded", path=state_file)
+            logger.info("state_loaded path=%s", state_file)
             return DiscoveryState(
                 last_full_scan=raw.get("last_full_scan", ""),
                 llm_providers_found=raw.get("llm_providers_found", 0),
@@ -453,7 +453,7 @@ class AutoDiscoveryEngine:
                 errors=list(raw.get("errors", [])),
             )
         except (json.JSONDecodeError, OSError, TypeError) as exc:
-            logger.warning("state_load_failed", path=state_file, error=str(exc))
+            logger.warning("state_load_failed path=%s error=%s", state_file, exc)
             return DiscoveryState()
 
     def _save_state(self) -> None:
@@ -476,6 +476,6 @@ class AutoDiscoveryEngine:
         try:
             with open(state_file, "w") as f:
                 json.dump(raw, f, indent=2)
-            logger.debug("state_saved", path=state_file)
+            logger.debug("state_saved path=%s", state_file)
         except OSError as exc:
-            logger.error("state_save_failed", path=state_file, error=str(exc))
+            logger.error("state_save_failed path=%s error=%s", state_file, exc)
