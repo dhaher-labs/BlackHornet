@@ -1,6 +1,19 @@
 # Roadmap — BlackHornet
 
-## Current (v5.0.0 — 2026-07-25)
+## Current (v7.0.0 — 2026-10-30)
+- pyproject version 7.0.0 (CHANGELOG 2026-10-27); main @ 154dc5c (105 commits ahead of tag v7.0.0 = 93f745e)
+- Test suite: 533 passed, 28 skipped (full run 2026-10-30, zero failures)
+- Autonomous ecosystem runtime live: supervisor v2-hardened + keepalive daemon (10-min beats) + 5-min health watchdog; auto-restart on crash via nested-orphan protocol (heal verified 2x; heals_total = 1)
+- Remote fleet in sync: 3 GitHub (mulkymalikuldhaher, mulkymalikuldhrs, org dhaher-labs) + 2 Codeberg (mulkymalikuldhr, org Dhaher-Labs) all at main=154dc5c + tag v7.0.0; GitLab re-ship pending old-project deletion watch
+- Paper-trading only; posture per PLAN.md: `BH_RUNTIME=python` default, money-path excluded from runtime migration until Phase 5+ (live-trading gate + journal semantics regression first)
+
+### Post-MVP engineering backlog (Phase 5, M2+)
+1. **base_agent typing redesign** — mypy reports 1 known error rooted in base_agent type structure; requires a type redesign, not a quick fix (design task, then sweep)
+2. **Host bootstrap wire** — AgentRegistry wiring decision for orchestrator + parked-agents bootstrap path (needs a design decision before implementation)
+3. **Backpressure heartbeat** — optional hardening; no spec yet, spec-first
+4. **Rust migration wedges** — see PLAN.md phased approach (stable seams: MCP, RAP, `ModelProvider`, store traits)
+
+## Legacy snapshot (v5.0.0 — 2026-07-25)
 - Omega Engine fully operational (12 modules)
 - 21 trading tools (L1-L5 layers)
 - 104 agents (9 core + 38 audit + 42 specialist)
