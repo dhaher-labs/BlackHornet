@@ -65,7 +65,7 @@ Labs. Perubahan HANYA via ADR baru.
 | SECURITY_MODEL.md (D7/D9) | `docs/07-security/SECURITY_MODEL.md` | Selesai @ `1a490f7` |
 | PROJECT_CHARTER.md (piagam ini) | `docs/00-vision/PROJECT_CHARTER.md` | Selesai (piagam) |
 | Audit faktual OpenCode & Hermes interface | mesin operator | **Belum** |
-| Inventaris repo lama | — | **Belum** |
+| Inventaris repo lama | `docs/02-arch/LEGACY_INVENTORY.md` | Selesai (commit ini) |
 
 Gate B0: spesifikasi tidak mencampur organisasi/runtime/capability/agent jadi satu
 konsep; hasil audit rebuild/reuse berbasis bukti.
