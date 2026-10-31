@@ -10,9 +10,14 @@ Fail-loud per PLAN F8: construction and start errors propagate to the caller;
 nothing here fakes success.
 
 Wiring scope (sanctioned by tests/memory/test_federation_ecosystem.py):
-graph_store + session_recorder + memory_system. Radar/MeshBus/SelfNest stay
-opt-in via ``orchestrator.wire(...)`` for deployments that want UDP peer
-discovery and the HTTP mesh — the sync loop guards None components.
+graph_store + session_recorder + memory_system, plus the parked-agent
+lifecycle bootstrap (Phase 5 M2+): an ``AgentRegistry`` and a
+``ParkedAgentRegistry`` sharing one EventBus are wired as
+``agent_registry``/``parked_registry``/``park_wake`` so the orchestrator's
+sync tick parks idle agents and wakes them on their subscribed task events.
+Radar/MeshBus/SelfNest stay opt-in via ``orchestrator.wire(...)`` for
+deployments that want UDP peer discovery and the HTTP mesh — the sync loop
+guards None components.
 """
 
 from __future__ import annotations
@@ -27,6 +32,18 @@ from src.config.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+def _log_park_wake(event: Any) -> None:
+    """Default park-wake handler: sync, contained, observability-only.
+
+    Wake *delivery* is host-specific (each agent runtime resumes work its own
+    way), so the stock bootstrap records the wake and leaves real delivery to
+    a custom handler injected via ``EcosystemRunner(park_wake=...)``. Must
+    never raise: the parked registry invokes it synchronously on the wakeup
+    path (``None`` event means a manual/state-transition wake).
+    """
+    logger.info("park_wake event=%s", getattr(event, "event_type", None) or "manual")
+
+
 class EcosystemRunner:
     """Owns an EcosystemOrchestrator and its asyncio loop in a daemon thread."""
 
@@ -36,9 +53,13 @@ class EcosystemRunner:
         memory_system: Any = None,
         event_bus: Any = None,
         colony_name: str = "blackhornet",
+        park_wake: Any = None,
     ) -> None:
+        from src.agents.registry import AgentRegistry
         from src.colony.orchestrator import EcosystemOrchestrator, OrchestratorConfig
+        from src.core.event_bus import EventBus
         from src.graph.session_recorder import SessionRecorder
+        from src.swarm.parked_agents import ParkedAgentRegistry
 
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(
@@ -61,10 +82,24 @@ class EcosystemRunner:
             data_dir="data",
         )
         self.orchestrator = EcosystemOrchestrator(config)
+
+        # Parked-agent lifecycle bootstrap (Phase 5 M2+): one bus shared by
+        # the agent registry (A2A capability advertisement) and the parked
+        # registry (subscription-driven wakeups). When the caller passes no
+        # event_bus the registries get a private bus; SessionRecorder wiring
+        # is unchanged (it only subscribes when a caller-supplied bus exists).
+        self.event_bus = event_bus if event_bus is not None else EventBus()
+        self.agent_registry = AgentRegistry(event_bus=self.event_bus)
+        self.parked_registry = ParkedAgentRegistry(bus=self.event_bus)
+        self._park_wake = park_wake if park_wake is not None else _log_park_wake
+
         self.orchestrator.wire(
             graph_store=graph_store,
             session_recorder=self.session_recorder,
             memory_system=memory_system,
+            agent_registry=self.agent_registry,
+            parked_registry=self.parked_registry,
+            park_wake=self._park_wake,
         )
 
     def _run_loop(self) -> None:
